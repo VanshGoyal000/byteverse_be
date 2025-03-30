@@ -9,7 +9,24 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://byteverse.tech', 'http://localhost:5173'] 
+    : '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Accept', 
+    'Origin', 
+    'admin-authorization', 
+    'apikey', 
+    'Admin-Authorization'
+  ],
+  credentials: true,
+  maxAge: 86400 // 24 hours
+}));
 app.use(express.json());
 
 // Connect to MongoDB
