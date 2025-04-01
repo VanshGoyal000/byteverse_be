@@ -2,7 +2,7 @@
  * Email templates for sending styled emails
  */
 
-// Base URL for assets - change this to your production URL
+// Base URL for assets - get from environment variable or default to production URL
 const BASE_URL = process.env.BASE_URL || 'https://byteverse.tech';
 const LOGO_URL = `${BASE_URL}/logo.png`;
 
@@ -29,6 +29,9 @@ const emailFooter = `
  * Template for project approval notification
  */
 exports.projectApprovalTemplate = (project) => {
+  // Replace any localhost URLs with BASE_URL
+  const projectUrl = `${BASE_URL}/projects/${project._id}`;
+
   return `
     <!DOCTYPE html>
     <html>
@@ -132,7 +135,7 @@ exports.projectApprovalTemplate = (project) => {
             <p>We're excited to feature your work in our community showcase. Feel free to share your project link with your network!</p>
             
             <div style="text-align: center;">
-              <a href="${BASE_URL}/projects" class="button">View All Projects</a>
+              <a href="${projectUrl}" class="button">View All Projects</a>
             </div>
             
             <p style="margin-top: 20px;">Thank you for your contribution to the ByteVerse community!</p>
@@ -360,6 +363,9 @@ exports.eventRegistrationTemplate = (registration, event) => {
   // For a real app, you'd generate an actual QR code image here
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(ticketId)}`;
   
+  // Replace any localhost URLs with BASE_URL
+  const eventUrl = `${BASE_URL}/events/${event._id}`;
+
   return `
     <!DOCTYPE html>
     <html>
@@ -528,7 +534,7 @@ exports.eventRegistrationTemplate = (registration, event) => {
             </div>
             
             <div style="text-align: center; margin-top: 20px;">
-              <a href="${BASE_URL}/events/${event._id || event.id}" class="button">Event Details</a>
+              <a href="${eventUrl}" class="button">Event Details</a>
             </div>
             
             <p style="margin-top: 20px;">If you have any questions or need to update your registration, please contact us.</p>

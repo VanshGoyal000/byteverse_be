@@ -1,6 +1,9 @@
 const Admin = require('../models/Admin');
 const jwt = require('jsonwebtoken');
 
+// Use environment variables for URLs
+const clientBaseUrl = process.env.BASE_URL || 'https://byteverse.tech';
+
 // @desc    Login admin
 // @route   POST /api/admin/login
 // @access  Public
@@ -76,5 +79,21 @@ exports.getAdmin = async (req, res) => {
       success: false,
       message: 'Server error'
     });
+  }
+};
+
+// @desc    Send group link to all event registrants
+// @route   POST /api/admin/events/:id/send-group-link
+// @access  Private/Admin
+exports.sendGroupLink = async (req, res) => {
+  try {
+    // ...existing code...
+    
+    // Use configured URL instead of hardcoded localhost
+    const eventUrl = `${clientBaseUrl}/events/${event._id}`;
+    
+    // ...rest of the function...
+  } catch (error) {
+    // ...error handling...
   }
 };

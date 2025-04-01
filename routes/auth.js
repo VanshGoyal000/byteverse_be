@@ -1,8 +1,37 @@
 const express = require('express');
 const router = express.Router();
+const { 
+  register, 
+  login, 
+  logout, 
+  getMe, 
+  updateDetails, 
+  updatePassword,
+  forgotPassword,
+  resetPassword,
+  verifyEmail
+} = require('../controllers/authController');
+
+const { protect } = require('../middleware/authMiddleware');
 const axios = require('axios');
 
+/**
+ * User authentication routes
+ */
+router.post('/register', register);
+router.post('/login', login);
+router.get('/logout', logout);
+router.get('/me', protect, getMe);
+router.put('/updatedetails', protect, updateDetails);
+router.put('/updatepassword', protect, updatePassword);
+router.post('/forgotpassword', forgotPassword);
+router.put('/resetpassword/:resettoken', resetPassword);
+router.get('/verify/:token', verifyEmail);
 
+/**
+ * Proxy endpoint for getting OAuth tokens
+ * This avoids CORS issues by handling the token request server-side
+ */
 router.post('/token', async (req, res) => {
   try {
     // Asgardeo OAuth endpoint

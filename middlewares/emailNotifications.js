@@ -1,5 +1,8 @@
 const sendEmail = require('../utils/sendEmail');
 
+// Use environment variables for URLs
+const adminUrl = process.env.ADMIN_URL || 'https://byteverse.tech/admin';
+
 /**
  * Middleware to notify admins about new project submissions
  */
@@ -10,6 +13,9 @@ exports.notifyAdminsOfNewSubmission = async (project) => {
       ['admin@byteverse.dev'];
     
     for (const email of adminEmails) {
+      // Use environment variable for admin URL
+      const adminReviewUrl = `${adminUrl}/dashboard`;
+
       await sendEmail({
         to: email.trim(),
         subject: '📝 New ByteVerse Project Submission',
@@ -42,7 +48,7 @@ exports.notifyAdminsOfNewSubmission = async (project) => {
                   </div>
                   
                   <div style="text-align: center; margin-top: 30px;">
-                    <a href="${process.env.ADMIN_URL || 'http://localhost:5173/admin/dashboard'}" class="button">Review Project</a>
+                    <a href="${adminReviewUrl}" class="button">Review Project</a>
                   </div>
                 </div>
               </div>
