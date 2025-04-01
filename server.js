@@ -44,6 +44,7 @@ app.use('/api/registrations', require('./routes/registration'));
 app.use('/api/project-submissions', require('./routes/projectSubmissions'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/community', require('./routes/community')); // Add this line
+app.use('/api/auth', require('./routes/auth'));
 
 // Default route
 app.get('/', (req, res) => {
