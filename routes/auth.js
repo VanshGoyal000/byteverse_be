@@ -2,10 +2,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 
-/**
- * Proxy endpoint for getting OAuth tokens
- * This avoids CORS issues by handling the token request server-side
- */
+
 router.post('/token', async (req, res) => {
   try {
     // Asgardeo OAuth endpoint
