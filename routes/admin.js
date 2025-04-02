@@ -1,6 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { adminLogin, getDashboardStats, getProjectSubmissions, reviewProjectSubmission } = require('../controllers/adminController');
+const { 
+  adminLogin, 
+  getDashboardStats, 
+  getProjectSubmissions, 
+  reviewProjectSubmission 
+} = require('../controllers/adminController');
 const { adminProtect } = require('../middleware/authMiddleware');
 
 // Public admin routes

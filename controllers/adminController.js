@@ -155,3 +155,86 @@ exports.sendGroupLink = async (req, res) => {
     // ...error handling...
   }
 };
+
+// @desc    Get dashboard statistics
+// @route   GET /api/admin/dashboard/stats
+// @access  Private (Admin only)
+exports.getDashboardStats = async (req, res) => {
+  try {
+    // Get counts of different entities
+    const userCount = await User.countDocuments();
+    const blogCount = await Blog.countDocuments();
+    const eventCount = await Event.countDocuments();
+    const projectCount = await Project.countDocuments();
+    
+    // Get pending project submissions
+    const pendingSubmissions = await ProjectSubmission.countDocuments({ status: 'pending' });
+    
+    // Get recent registrations
+    const recentRegistrations = await Registration.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('event', 'title');
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        counts: {
+          users: userCount,
+          blogs: blogCount,
+          events: eventCount,
+          projects: projectCount,
+          pendingSubmissions
+        },
+        recentRegistrations
+      }
+    });
+  } catch (error) {
+    console.error('Error in getDashboardStats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching dashboard stats',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get project submissions
+// @route   GET /api/admin/project-submissions
+// @access  Private (Admin only)
+exports.getProjectSubmissions = async (req, res) => {
+  try {
+    const status = req.query.status || 'all';
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    let query = {};
+    
+    if (status !== 'all') {
+      query.status = status;
+    }
+    
+    const submissions = await ProjectSubmission.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('user', 'name email');
+    
+    const total = await ProjectSubmission.countDocuments(query);
+    
+    res.status(200).json({
+      success: true,
+      count: submissions.length,
+      total,
+      data: submissions
+    });
+  } catch (error) {
+    console.error('Error in getProjectSubmissions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching project submissions',
+      error: error.message
+    });
+  }
+};
