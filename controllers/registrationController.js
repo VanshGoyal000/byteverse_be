@@ -446,3 +446,49 @@ exports.getEventRegistrations = async (req, res) => {
     });
   }
 };
+
+// @desc    Update group link for an event
+// @route   PUT /api/registrations/events/:eventId/group-link
+// @access  Private (Admin only)
+exports.updateRegistrationGroupLink = async (req, res) => {
+  try {
+    // Check if the user is an admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update group links'
+      });
+    }
+
+    const { eventId } = req.params;
+    const { groupLink } = req.body;
+    
+    if (!groupLink) {
+      return res.status(400).json({
+        success: false,
+        message: 'Group link is required'
+      });
+    }
+
+    // Update all registrations for this event with the new group link
+    const result = await Registration.updateMany(
+      { event: eventId },
+      { groupLink }
+    );
+    
+    res.status(200).json({
+      success: true,
+      message: `Updated group link for ${result.modifiedCount} registrations`,
+      data: {
+        modifiedCount: result.modifiedCount
+      }
+    });
+  } catch (error) {
+    console.error('Error updating group links:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating group links',
+      error: error.message
+    });
+  }
+};
