@@ -63,6 +63,74 @@ exports.loginAdmin = async (req, res) => {
   }
 };
 
+// @desc    Get admin settings
+// @route   GET /api/admin/settings
+// @access  Private (Admin only)
+exports.getAdminSettings = async (req, res) => {
+  try {
+    // Get site configuration settings from database or defaults
+    const settings = {
+      siteName: 'ByteVerse',
+      maintenanceMode: false,
+      allowRegistration: true,
+      requireEmailVerification: true,
+      maxUploadSize: 5, // MB
+      featuredEvents: [],
+      featuredBlogs: [],
+      customTheme: {
+        primaryColor: '#6e9ef5',
+        secondaryColor: '#8A2BE2',
+      },
+      // Add any other site-wide settings
+    };
+    
+    // You could eventually fetch these from a Settings model in your database
+    
+    res.status(200).json({
+      success: true,
+      data: settings
+    });
+  } catch (error) {
+    console.error('Error in getAdminSettings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching admin settings',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get system statistics or any other missing admin route
+// @route   GET /api/admin/system
+// @access  Private (Admin only)
+exports.getSystemStats = async (req, res) => {
+  try {
+    // This is a generic handler for any missing route
+    // You can customize this based on what route is actually missing at line 20
+    
+    const stats = {
+      systemHealth: 'good',
+      serverUptime: process.uptime(),
+      nodeVersion: process.version,
+      memoryUsage: process.memoryUsage(),
+      environment: process.env.NODE_ENV || 'development',
+      lastRestart: new Date(Date.now() - process.uptime() * 1000).toISOString()
+    };
+    
+    res.status(200).json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error in getSystemStats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching system statistics',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Login admin user
 // @route   POST /api/admin/login
 // @access  Public

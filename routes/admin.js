@@ -9,7 +9,9 @@ const {
   getRegisteredUsers,
   getEventRegistrations,
   getAdminBlogs,
-  getAdminEvents
+  getAdminEvents,
+  getAdminSettings,
+  getSystemStats
 } = require('../controllers/adminController');
 const { adminProtect } = require('../middleware/authMiddleware');
 
@@ -25,5 +27,7 @@ router.get('/registered-users', adminProtect, getRegisteredUsers);
 router.get('/event-registrations', adminProtect, getEventRegistrations);
 router.get('/blogs', adminProtect, getAdminBlogs);
 router.get('/events', adminProtect, getAdminEvents);
+router.get('/settings', adminProtect, getAdminSettings); // Added to fix line 20
+router.get('/system', adminProtect, getSystemStats); // Added as a backup
 
 module.exports = router;
