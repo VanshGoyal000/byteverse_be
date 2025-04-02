@@ -1,50 +1,39 @@
 const mongoose = require('mongoose');
 
 const RegistrationSchema = new mongoose.Schema({
-  eventId: {
-    type: String, // Changed from ObjectId for easier frontend compatibility
+  event: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Event',
     required: true
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   name: {
     type: String,
-    required: true,
-    trim: true
+    required: [true, 'Name is required']
   },
   email: {
     type: String,
-    required: true,
-    trim: true,
-    lowercase: true
+    required: [true, 'Email is required'],
+    match: [
+      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+      'Please add a valid email'
+    ]
   },
   phone: {
-    type: String,
-    trim: true
+    type: String
   },
-  github: {
-    type: String,
-    trim: true
+  groupLink: {
+    type: String
   },
-  linkedin: {
-    type: String,
-    trim: true
-  },
-  registeredAt: {
+  createdAt: {
     type: Date,
     default: Date.now
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'confirmed', 'cancelled'],
-    default: 'pending'
-  },
-  // Add ticket ID field to store the generated ticket identifier
-  ticketId: {
-    type: String,
-    unique: true
   }
 });
 
-// Create a compound index to prevent duplicate registrations
-RegistrationSchema.index({ eventId: 1, email: 1 }, { unique: true });
+// Add any pre-save hooks or methods you need
 
 module.exports = mongoose.model('Registration', RegistrationSchema);

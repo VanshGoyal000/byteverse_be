@@ -30,6 +30,15 @@ mongoose.connect(process.env.MONGO_URI, {
 .then(() => console.log('MongoDB Connected'))
 .catch(err => console.error('MongoDB connection error:', err));
 
+// Mount routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/blogs', require('./routes/blogs'));
+app.use('/api/events', require('./routes/events'));
+app.use('/api/projects', require('./routes/projects'));
+app.use('/api/project-submissions', require('./routes/projectSubmissions'));
+app.use('/api/registrations', require('./routes/registration'));
+app.use('/api/admin', require('./routes/admin')); // Make sure the admin route is properly mounted
+
 // Route files
 const auth = require('./routes/auth');
 const blogs = require('./routes/blogs');

@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { loginAdmin, getAdmin } = require('../controllers/adminController');
-const { protect } = require('../middleware/authMiddleware');
+const { adminLogin, getDashboardStats, getProjectSubmissions, reviewProjectSubmission } = require('../controllers/adminController');
+const { adminProtect } = require('../middleware/authMiddleware');
 
-// Public routes
-router.post('/login', loginAdmin);
+// Public admin routes
+router.post('/login', adminLogin);
 
-// Protected routes
-router.get('/me', protect, getAdmin);
+// Protected admin routes
+router.get('/dashboard/stats', adminProtect, getDashboardStats);
+router.get('/project-submissions', adminProtect, getProjectSubmissions);
+router.put('/project-submissions/:id/review', adminProtect, reviewProjectSubmission);
 
 module.exports = router;

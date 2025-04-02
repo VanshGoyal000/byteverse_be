@@ -9,7 +9,8 @@ const {
   updatePassword,
   forgotPassword,
   resetPassword,
-  verifyEmail
+  verifyEmail,
+  getPublicProfile
 } = require('../controllers/authController');
 
 const { protect } = require('../middleware/authMiddleware');
@@ -27,6 +28,11 @@ router.put('/updatepassword', protect, updatePassword);
 router.post('/forgotpassword', forgotPassword);
 router.put('/resetpassword/:resettoken', resetPassword);
 router.get('/verify/:token', verifyEmail);
+
+/**
+ * Public profile route
+ */
+router.get('/users/:identifier', getPublicProfile);
 
 /**
  * Proxy endpoint for getting OAuth tokens

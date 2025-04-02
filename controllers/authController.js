@@ -354,6 +354,62 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
+// @desc    Get public user profile by username or id
+// @route   GET /api/users/:identifier
+// @access  Public
+exports.getPublicProfile = async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    
+    // Check if identifier is a valid ObjectId (for MongoDB _id lookups)
+    const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(identifier);
+    
+    // Query by username or _id depending on the format
+    const user = isValidObjectId 
+      ? await User.findById(identifier)
+      : await User.findOne({ 
+          // Case-insensitive username search, or try to find by name if username not available
+          $or: [
+            { username: new RegExp(`^${identifier}$`, 'i') },
+            { name: new RegExp(`^${identifier}$`, 'i') }
+          ]
+        });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Only return public profile data
+    const publicProfile = {
+      _id: user._id,
+      name: user.name,
+      username: user.username,
+      avatar: user.avatar,
+      bio: user.bio,
+      website: user.website,
+      isVerified: user.isVerified,
+      socialLinks: user.socialLinks,
+      createdAt: user.createdAt,
+      role: user.role === 'admin' ? 'admin' : 'user', // Only reveal admin status
+    };
+
+    res.status(200).json({
+      success: true,
+      data: publicProfile
+    });
+  } catch (error) {
+    console.error('Error in getPublicProfile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user profile',
+      error: error.message
+    });
+  }
+};
+
 // Helper function to get token from model, create cookie and send response
 const sendTokenResponse = (user, statusCode, res) => {
   // Create token
