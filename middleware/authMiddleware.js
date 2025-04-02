@@ -105,33 +105,28 @@ exports.adminAuth = async (req, res, next) => {
 
 // Optional auth - doesn't require authentication but attaches user if authenticated
 exports.optionalAuth = async (req, res, next) => {
-  let token;
-
-  // Check for token in headers
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    // Extract token from Bearer token
-    token = req.headers.authorization.split(' ')[1];
-  } 
-  // Check for token in cookies
-  else if (req.cookies && req.cookies.token) {
-    token = req.cookies.token;
-  }
-
-  // If no token, continue without setting user
-  if (!token) {
-    return next();
-  }
-
   try {
+    // Get token from header
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      // No token, continue without user
+      return next();
+    }
+    
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'byteversesecret12345');
-
-    // Add user to request object if found
-    req.user = await User.findById(decoded.id);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Check if user exists with that id
+    const user = await User.findById(decoded.id);
+    
+    if (user) {
+      req.user = user;
+    }
     
     next();
   } catch (error) {
-    // Continue without setting user if token is invalid
+    // Token invalid but proceed anyway (just without authenticated user)
     next();
   }
 };

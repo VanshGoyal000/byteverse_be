@@ -242,7 +242,7 @@ exports.deleteBlog = async (req, res) => {
       });
     }
     
-    await blog.remove();
+    await Blog.findByIdAndDelete(req.params.id);
     
     res.status(200).json({
       success: true,
@@ -404,41 +404,44 @@ exports.addComment = async (req, res) => {
 exports.deleteComment = async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);
-    
+
     if (!blog) {
       return res.status(404).json({
         success: false,
         message: 'Blog not found'
       });
     }
-    
+
     // Find the comment
     const comment = blog.comments.id(req.params.commentId);
-    
+
     if (!comment) {
       return res.status(404).json({
         success: false,
         message: 'Comment not found'
       });
     }
-    
-    // Make sure user is comment owner, blog owner, or admin
-    if (comment.user.toString() !== req.user.id && 
-        blog.author.toString() !== req.user.id && 
-        req.user.role !== 'admin') {
+
+    // Check if user is authorized to delete (comment author or blog author or admin)
+    if (
+      comment.user.toString() !== req.user.id &&
+      blog.author.toString() !== req.user.id && 
+      req.user.role !== 'admin'
+    ) {
       return res.status(401).json({
         success: false,
         message: 'Not authorized to delete this comment'
       });
     }
-    
-    // Remove the comment
-    comment.remove();
+
+    // Don't use comment.remove() as it's not a function in newer Mongoose
+    // Instead, use the pull method on the comments array
+    blog.comments.pull(req.params.commentId);
     await blog.save();
-    
+
     res.status(200).json({
       success: true,
-      data: blog.comments
+      data: {}
     });
   } catch (error) {
     console.error('Error in deleteComment:', error);

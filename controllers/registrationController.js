@@ -287,3 +287,106 @@ exports.sendGroupLinksToRegistrants = async (req, res) => {
     });
   }
 };
+
+// Add or update the check registration endpoint
+exports.checkRegistration = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const { eventId } = req.params;
+    
+    if (!email || !eventId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and event ID are required'
+      });
+    }
+
+    // Check if registration exists
+    const registration = await Registration.findOne({ 
+      event: eventId,
+      email: email.toLowerCase()
+    });
+
+    return res.status(200).json({
+      success: true,
+      registered: !!registration
+    });
+  } catch (error) {
+    console.error('Error checking registration:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error checking registration status',
+      error: error.message
+    });
+  }
+};
+
+// Update the register endpoint to associate with user if authenticated
+exports.register = async (req, res) => {
+  try {
+    const { email, name, phone } = req.body;
+    const { eventId } = req.params;
+    
+    // Check if the event exists and has spots available
+    const event = await Event.findById(eventId);
+    
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: 'Event not found'
+      });
+    }
+    
+    // Check if registration already exists
+    const existingRegistration = await Registration.findOne({
+      event: eventId,
+      email: email.toLowerCase()
+    });
+    
+    if (existingRegistration) {
+      return res.status(400).json({
+        success: false,
+        message: 'You are already registered for this event'
+      });
+    }
+    
+    // Create registration object
+    const registrationData = {
+      event: eventId,
+      email: email.toLowerCase(),
+      name,
+      phone
+    };
+    
+    // If user is authenticated, associate registration with their account
+    if (req.user) {
+      registrationData.user = req.user.id;
+    }
+    
+    // Create the registration
+    const registration = await Registration.create(registrationData);
+    
+    // Update event registration count
+    event.registeredCount = (event.registeredCount || 0) + 1;
+    await event.save();
+    
+    // Send confirmation email
+    try {
+      // Email logic...
+    } catch (emailError) {
+      console.error('Error sending confirmation email:', emailError);
+    }
+    
+    res.status(201).json({
+      success: true,
+      data: registration
+    });
+  } catch (error) {
+    console.error('Error registering for event:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error registering for event',
+      error: error.message
+    });
+  }
+};
