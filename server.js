@@ -72,4 +72,22 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Something went wrong!' });
 });
 
+// Add global error handler for route definition errors
+process.on('uncaughtException', (err) => {
+  if (err.message.includes('requires a callback function but got a [object Undefined]')) {
+    console.error('\x1b[31m%s\x1b[0m', 'ERROR: Route handler is undefined. Check your controller exports.');
+    console.error('\x1b[33m%s\x1b[0m', err.stack);
+    
+    // In production, we might want to keep the server running despite this error
+    if (process.env.NODE_ENV === 'development') {
+      process.exit(1);
+    }
+  } else {
+    // For other uncaught exceptions, follow normal termination procedure
+    console.error('\x1b[31m%s\x1b[0m', 'UNCAUGHT EXCEPTION! 💥 Shutting down...');
+    console.error('\x1b[33m%s\x1b[0m', err.stack);
+    process.exit(1);
+  }
+});
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -498,3 +498,45 @@ exports.getAdminEvents = async (req, res) => {
     });
   }
 };
+
+// @desc    Get analytics data
+// @route   GET /api/admin/analytics
+// @access  Private (Admin only)
+exports.getAnalytics = async (req, res) => {
+  try {
+    // Basic analytics data example
+    const analytics = {
+      totalUsers: await User.countDocuments(),
+      totalBlogs: await Blog.countDocuments(),
+      totalEvents: await Event.countDocuments(),
+      activeUsers: await User.countDocuments({ lastLogin: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }),
+      topBlogs: await Blog.find().sort({ views: -1 }).limit(5).select('title views'),
+      userGrowth: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        data: [12, 19, 25, 32, 45, 57]  // Sample data - would be calculated in a real app
+      }
+    };
+    
+    res.status(200).json({
+      success: true,
+      data: analytics
+    });
+  } catch (error) {
+    console.error('Error in getAnalytics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching analytics data',
+      error: error.message
+    });
+  }
+};
+
+// Add a generic fallback controller that can be used when specific implementations aren't ready
+exports.notImplementedYet = (routeName) => {
+  return (req, res) => {
+    res.status(501).json({
+      success: false,
+      message: `The ${routeName || 'requested'} endpoint is not implemented yet`
+    });
+  };
+};

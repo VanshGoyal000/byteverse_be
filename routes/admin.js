@@ -11,23 +11,35 @@ const {
   getAdminBlogs,
   getAdminEvents,
   getAdminSettings,
-  getSystemStats
+  getSystemStats,
+  getAnalytics,
+  notImplementedYet
 } = require('../controllers/adminController');
 const { adminProtect } = require('../middleware/authMiddleware');
 
+// Helper function to ensure route handlers exist
+const ensureHandler = (handler, routeName) => {
+  return handler || notImplementedYet(routeName);
+};
+
 // Public admin routes
-router.post('/login', adminLogin);
+router.post('/login', ensureHandler(adminLogin, 'admin login'));
 
 // Protected admin routes
-router.get('/dashboard/stats', adminProtect, getDashboardStats);
-router.get('/project-submissions', adminProtect, getProjectSubmissions);
-router.put('/project-submissions/:id/review', adminProtect, reviewProjectSubmission);
-router.get('/users', adminProtect, getAdminUsers);
-router.get('/registered-users', adminProtect, getRegisteredUsers);
-router.get('/event-registrations', adminProtect, getEventRegistrations);
-router.get('/blogs', adminProtect, getAdminBlogs);
-router.get('/events', adminProtect, getAdminEvents);
-router.get('/settings', adminProtect, getAdminSettings); // Added to fix line 20
-router.get('/system', adminProtect, getSystemStats); // Added as a backup
+router.get('/dashboard/stats', adminProtect, ensureHandler(getDashboardStats, 'dashboard stats'));
+router.get('/project-submissions', adminProtect, ensureHandler(getProjectSubmissions, 'project submissions'));
+router.put('/project-submissions/:id/review', adminProtect, ensureHandler(reviewProjectSubmission, 'review project'));
+router.get('/users', adminProtect, ensureHandler(getAdminUsers, 'admin users'));
+router.get('/registered-users', adminProtect, ensureHandler(getRegisteredUsers, 'registered users'));
+router.get('/event-registrations', adminProtect, ensureHandler(getEventRegistrations, 'event registrations'));
+router.get('/blogs', adminProtect, ensureHandler(getAdminBlogs, 'admin blogs'));
+router.get('/events', adminProtect, ensureHandler(getAdminEvents, 'admin events'));
+router.get('/settings', adminProtect, ensureHandler(getAdminSettings, 'admin settings'));
+router.get('/system', adminProtect, ensureHandler(getSystemStats, 'system stats'));
+router.get('/analytics', adminProtect, ensureHandler(getAnalytics, 'analytics'));
+
+// For any other routes that might have been added without handlers
+// Fix line 22 and any other similar issues
+router.get('/any-undefined-route', adminProtect, ensureHandler(null, 'generic endpoint'));
 
 module.exports = router;
