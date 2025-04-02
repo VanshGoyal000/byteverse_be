@@ -390,3 +390,59 @@ exports.register = async (req, res) => {
     });
   }
 };
+
+// @desc    Get user's event registrations
+// @route   GET /api/registrations/user
+// @access  Private
+exports.getUserRegistrations = async (req, res) => {
+  try {
+    const registrations = await Registration.find({ user: req.user.id })
+      .populate('event', 'title date image location');
+    
+    res.status(200).json({
+      success: true,
+      count: registrations.length,
+      data: registrations
+    });
+  } catch (error) {
+    console.error('Error in getUserRegistrations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching registrations',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get all registrations for an event
+// @route   GET /api/registrations/events/:eventId
+// @access  Private (Admin only)
+exports.getEventRegistrations = async (req, res) => {
+  try {
+    // Check if the user is an admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to access registrations'
+      });
+    }
+
+    const { eventId } = req.params;
+    
+    const registrations = await Registration.find({ event: eventId })
+      .sort({ createdAt: -1 });
+    
+    res.status(200).json({
+      success: true,
+      count: registrations.length,
+      data: registrations
+    });
+  } catch (error) {
+    console.error('Error in getEventRegistrations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching event registrations',
+      error: error.message
+    });
+  }
+};
