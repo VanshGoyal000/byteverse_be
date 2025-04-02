@@ -4,7 +4,12 @@ const {
   adminLogin, 
   getDashboardStats, 
   getProjectSubmissions, 
-  reviewProjectSubmission 
+  reviewProjectSubmission,
+  getAdminUsers,
+  getRegisteredUsers,
+  getEventRegistrations,
+  getAdminBlogs,
+  getAdminEvents
 } = require('../controllers/adminController');
 const { adminProtect } = require('../middleware/authMiddleware');
 
@@ -15,5 +20,10 @@ router.post('/login', adminLogin);
 router.get('/dashboard/stats', adminProtect, getDashboardStats);
 router.get('/project-submissions', adminProtect, getProjectSubmissions);
 router.put('/project-submissions/:id/review', adminProtect, reviewProjectSubmission);
+router.get('/users', adminProtect, getAdminUsers);
+router.get('/registered-users', adminProtect, getRegisteredUsers);
+router.get('/event-registrations', adminProtect, getEventRegistrations);
+router.get('/blogs', adminProtect, getAdminBlogs);
+router.get('/events', adminProtect, getAdminEvents);
 
 module.exports = router;

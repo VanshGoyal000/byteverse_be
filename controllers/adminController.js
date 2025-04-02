@@ -238,3 +238,195 @@ exports.getProjectSubmissions = async (req, res) => {
     });
   }
 };
+
+// @desc    Review project submission
+// @route   PUT /api/admin/project-submissions/:id/review
+// @access  Private (Admin only)
+exports.reviewProjectSubmission = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, feedback } = req.body;
+    
+    if (!['approved', 'rejected', 'pending'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status value'
+      });
+    }
+    
+    const projectSubmission = await ProjectSubmission.findById(id);
+    
+    if (!projectSubmission) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project submission not found'
+      });
+    }
+    
+    projectSubmission.status = status;
+    projectSubmission.feedback = feedback;
+    projectSubmission.reviewedAt = Date.now();
+    projectSubmission.reviewedBy = req.user.id;
+    
+    await projectSubmission.save();
+    
+    // If project is approved, also add it to the public projects collection
+    if (status === 'approved') {
+      // Create a public project from the submission
+      await Project.create({
+        title: projectSubmission.title,
+        description: projectSubmission.description,
+        technologies: projectSubmission.technologies,
+        liveUrl: projectSubmission.liveUrl,
+        repoUrl: projectSubmission.repoUrl,
+        image: projectSubmission.image,
+        submittedBy: projectSubmission.user
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: projectSubmission
+    });
+  } catch (error) {
+    console.error('Error in reviewProjectSubmission:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error reviewing project submission',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get admin users list
+// @route   GET /api/admin/users
+// @access  Private (Admin only)
+exports.getAdminUsers = async (req, res) => {
+  try {
+    const admins = await Admin.find().select('-password');
+    
+    res.status(200).json({
+      success: true,
+      count: admins.length,
+      data: admins
+    });
+  } catch (error) {
+    console.error('Error in getAdminUsers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching admin users',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get registered users list
+// @route   GET /api/admin/registered-users
+// @access  Private (Admin only)
+exports.getRegisteredUsers = async (req, res) => {
+  try {
+    // Add pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    const users = await User.find()
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await User.countDocuments();
+    
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      total,
+      data: users
+    });
+  } catch (error) {
+    console.error('Error in getRegisteredUsers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching registered users',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get event registrations
+// @route   GET /api/admin/event-registrations
+// @access  Private (Admin only)
+exports.getEventRegistrations = async (req, res) => {
+  try {
+    const { eventId } = req.query;
+    
+    // Build query based on whether eventId is provided
+    const query = eventId ? { event: eventId } : {};
+    
+    const registrations = await Registration.find(query)
+      .populate('event', 'title date')
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+    
+    res.status(200).json({
+      success: true,
+      count: registrations.length,
+      data: registrations
+    });
+  } catch (error) {
+    console.error('Error in getEventRegistrations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching event registrations',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get admin blogs list
+// @route   GET /api/admin/blogs
+// @access  Private (Admin only)
+exports.getAdminBlogs = async (req, res) => {
+  try {
+    const blogs = await Blog.find()
+      .sort({ createdAt: -1 })
+      .populate('author', 'name email');
+    
+    res.status(200).json({
+      success: true,
+      count: blogs.length,
+      data: blogs
+    });
+  } catch (error) {
+    console.error('Error in getAdminBlogs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching blogs',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get admin events list
+// @route   GET /api/admin/events
+// @access  Private (Admin only)
+exports.getAdminEvents = async (req, res) => {
+  try {
+    const events = await Event.find()
+      .sort({ date: 1 });
+    
+    res.status(200).json({
+      success: true,
+      count: events.length,
+      data: events
+    });
+  } catch (error) {
+    console.error('Error in getAdminEvents:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching events',
+      error: error.message
+    });
+  }
+};
