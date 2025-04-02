@@ -19,7 +19,17 @@ const { adminProtect } = require('../middleware/authMiddleware');
 
 // Helper function to ensure route handlers exist
 const ensureHandler = (handler, routeName) => {
-  return handler || notImplementedYet(routeName);
+  if (typeof handler !== 'function') {
+    console.warn(`Warning: Handler for '${routeName}' is not a function. Using placeholder.`);
+    return (req, res) => {
+      res.status(501).json({ 
+        success: false, 
+        message: `The endpoint '${routeName}' is not implemented yet.`,
+        endpoint: req.originalUrl
+      });
+    };
+  }
+  return handler;
 };
 
 // Public admin routes
@@ -37,9 +47,5 @@ router.get('/events', adminProtect, ensureHandler(getAdminEvents, 'admin events'
 router.get('/settings', adminProtect, ensureHandler(getAdminSettings, 'admin settings'));
 router.get('/system', adminProtect, ensureHandler(getSystemStats, 'system stats'));
 router.get('/analytics', adminProtect, ensureHandler(getAnalytics, 'analytics'));
-
-// For any other routes that might have been added without handlers
-// Fix line 22 and any other similar issues
-router.get('/any-undefined-route', adminProtect, ensureHandler(null, 'generic endpoint'));
 
 module.exports = router;
