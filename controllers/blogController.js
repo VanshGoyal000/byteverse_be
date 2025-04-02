@@ -1,5 +1,6 @@
 const Blog = require('../models/Blog');
 const User = require('../models/User');
+const { createNotification } = require('./notificationController');
 
 // @desc    Get all blogs (with filters and pagination)
 // @route   GET /api/blogs
@@ -144,6 +145,14 @@ exports.getBlog = async (req, res) => {
 // @access  Private
 exports.createBlog = async (req, res) => {
   try {
+    // Check if user is verified
+    if (!req.user.isVerified) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account must be verified before you can create blog posts'
+      });
+    }
+    
     // Add user to req.body
     req.body.author = req.user.id;
     req.body.authorName = req.user.name;
@@ -293,6 +302,19 @@ exports.likeBlog = async (req, res) => {
       // Not liked, so add like
       blog.likes += 1;
       blog.likedBy.push(req.user.id);
+      
+      // Create notification for the blog author if it's not the same user
+      if (blog.author.toString() !== req.user.id) {
+        await createNotification({
+          recipient: blog.author,
+          type: 'like',
+          content: `${req.user.name} liked your blog post "${blog.title}"`,
+          resourceType: 'blog',
+          resourceId: blog._id,
+          sender: req.user.id,
+          link: `/blogs/${blog._id}`
+        });
+      }
     } else {
       // Already liked, so remove like
       blog.likes -= 1;
@@ -348,6 +370,19 @@ exports.addComment = async (req, res) => {
     
     blog.comments.push(newComment);
     await blog.save();
+    
+    // Create notification for blog author if commenter is not the author
+    if (blog.author.toString() !== req.user.id) {
+      await createNotification({
+        recipient: blog.author,
+        type: 'comment',
+        content: `${req.user.name} commented on your blog post "${blog.title}"`,
+        resourceType: 'blog',
+        resourceId: blog._id,
+        sender: req.user.id,
+        link: `/blogs/${blog._id}#comments`
+      });
+    }
     
     res.status(201).json({
       success: true,

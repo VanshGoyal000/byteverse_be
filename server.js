@@ -30,14 +30,27 @@ mongoose.connect(process.env.MONGO_URI, {
 .then(() => console.log('MongoDB Connected'))
 .catch(err => console.error('MongoDB connection error:', err));
 
-// Routes
-app.use('/api/projects', require('./routes/projects'));
-app.use('/api/events', require('./routes/events'));
-app.use('/api/registrations', require('./routes/registration'));
-app.use('/api/project-submissions', require('./routes/projectSubmissions'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/community', require('./routes/community')); // Add this line
-app.use('/api/auth', require('./routes/auth'));
+// Route files
+const auth = require('./routes/auth');
+const blogs = require('./routes/blogs');
+const events = require('./routes/events');
+const projects = require('./routes/projects');
+const registrations = require('./routes/registration');
+const projectSubmissions = require('./routes/projectSubmissions');
+const admin = require('./routes/admin');
+const community = require('./routes/community');
+const notifications = require('./routes/notifications');
+
+// Mount routers
+app.use('/api/auth', auth);
+app.use('/api/blogs', blogs);
+app.use('/api/events', events);
+app.use('/api/projects', projects);
+app.use('/api/registrations', registrations);
+app.use('/api/project-submissions', projectSubmissions);
+app.use('/api/admin', admin);
+app.use('/api/community', community);
+app.use('/api/notifications', notifications);
 
 // Default route
 app.get('/', (req, res) => {
