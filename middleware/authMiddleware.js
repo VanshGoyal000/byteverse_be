@@ -130,3 +130,59 @@ exports.optionalAuth = async (req, res, next) => {
     next();
   }
 };
+
+// @desc    Protect routes for admin users only
+exports.adminProtect = async (req, res, next) => {
+  try {
+    // First apply the regular protect middleware
+    let token;
+    
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    } else if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    } else if (req.headers['admin-token']) {
+      token = req.headers['admin-token'];
+    }
+    
+    // Check if token exists
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized to access this resource'
+      });
+    }
+    
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Get user from DB
+    const user = await User.findById(decoded.id);
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Check if user has admin role
+    if (user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin access required'
+      });
+    }
+    
+    // Set user in request
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Error in adminProtect middleware:', error);
+    return res.status(401).json({
+      success: false,
+      message: 'Not authorized to access this resource',
+      error: error.message
+    });
+  }
+};
