@@ -69,8 +69,8 @@ app.use(cors(corsOptions));
 // Handle OPTIONS preflight requests explicitly
 app.options('*', cors(corsOptions));
 
-// Security: Body parser with size limits
-app.use(express.json({ limit: '10kb' })); // Limit body size to 10kb
+// Security: Body parser with size limits - Increased for blog content
+app.use(express.json({ limit: '10kb' })); // Limit body size to 10kbmb
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // Security: Data sanitization against NoSQL query injection
@@ -95,6 +95,7 @@ const securityMiddleware = require('./middleware/security');
 // Apply security middleware
 app.use(securityMiddleware.blocklistCheck);
 app.use(securityMiddleware.suspiciousActivityMonitor);
+app.use(securityMiddleware.contentSizeChecker); // Add content size checker
 app.use(securityMiddleware.enhancedCors); // Apply enhanced CORS handling
 
 // Connect to MongoDB
@@ -115,9 +116,9 @@ const projectSubmissions = require('./routes/projectSubmissions');
 const admin = require('./routes/admin');
 const community = require('./routes/community');
 const notifications = require('./routes/notifications');
-
+ with specific middleware for blogs to handle larger payloads
 // Mount routers
-app.use('/api/auth', auth);
+app.use('/api/auth', auth);.json({ limit: '10mb' }), blogs); // Special larger limit for blogs
 app.use('/api/blogs', blogs);
 app.use('/api/events', events);
 app.use('/api/projects', projects);

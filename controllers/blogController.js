@@ -1,6 +1,7 @@
 const Blog = require('../models/Blog');
 const User = require('../models/User');
 const { createNotification } = require('./notificationController');
+const { optimizeBlogContent } = require('../utils/contentOptimizer');
 
 // @desc    Get all blogs (with filters and pagination)
 // @route   GET /api/blogs
@@ -169,12 +170,23 @@ exports.createBlog = async (req, res) => {
       });
     }
     
+    // Optimize the blog content before saving
+    const optimizedBlogData = optimizeBlogContent(req.body);
+    
+    // Log the size reduction
+    const originalSize = JSON.stringify(req.body).length;
+    const optimizedSize = JSON.stringify(optimizedBlogData).length;
+    console.log(`Blog content optimized: ${originalSize} bytes → ${optimizedSize} bytes (${Math.round((originalSize - optimizedSize) / originalSize * 100)}% reduction)`);
+    
     // Add user to req.body
     req.body.author = req.user.id;
     req.body.authorName = req.user.name;
     req.body.authorImage = req.user.avatar;
     
-    const blog = await Blog.create(req.body);
+    const blog = await Blog.create({
+      ...optimizedBlogData,
+      author: req.user.id // Assuming req.user is set by auth middleware
+    });
     
     res.status(201).json({
       success: true,

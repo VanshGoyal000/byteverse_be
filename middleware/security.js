@@ -176,3 +176,42 @@ exports.validateRequest = (schema) => {
     }
   };
 };
+
+/**
+ * Content size checker middleware - More flexible limits based on content type
+ */
+exports.contentSizeChecker = (req, res, next) => {
+  // Skip size checks for certain endpoints that need to handle larger payloads
+  const largeContentEndpoints = [
+    '/api/blogs',
+    '/api/project-submissions'
+  ];
+  
+  // Check if this is one of our large content endpoints
+  const isLargeContentEndpoint = largeContentEndpoints.some(endpoint => 
+    req.path.startsWith(endpoint)
+  );
+  
+  // Get content length from headers
+  const contentLength = parseInt(req.headers['content-length'] || 0, 10);
+  
+  if (contentLength > 0) {
+    // For most endpoints, enforce a 1mb limit
+    if (!isLargeContentEndpoint && contentLength > 1 * 1024 * 1024) {
+      return res.status(413).json({
+        success: false,
+        message: 'Payload too large for this endpoint - max size is 1MB'
+      });
+    }
+    
+    // For large content endpoints, enforce a 10mb limit
+    if (isLargeContentEndpoint && contentLength > 10 * 1024 * 1024) {
+      return res.status(413).json({
+        success: false,
+        message: 'Payload too large - max size is 10MB'
+      });
+    }
+  }
+  
+  next();
+};
