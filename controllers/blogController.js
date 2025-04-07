@@ -451,6 +451,84 @@ exports.getDraftBlogs = async (req, res) => {
   }
 };
 
+// Update a draft blog
+exports.updateDraftBlog = async (req, res) => {
+  try {
+    const draft = await Blog.findOne({
+      _id: req.params.id,
+      author: req.user._id,
+      published: false
+    });
+    
+    if (!draft) {
+      return res.status(404).json({
+        success: false,
+        message: 'Draft not found or you do not have permission to edit it'
+      });
+    }
+    
+    // Update the draft with request body data
+    Object.keys(req.body).forEach(key => {
+      draft[key] = req.body[key];
+    });
+    
+    // Ensure it stays as a draft
+    draft.published = false;
+    
+    await draft.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Draft updated successfully',
+      data: draft
+    });
+  } catch (error) {
+    console.error('Error in updateDraftBlog:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating draft blog',
+      error: error.message
+    });
+  }
+};
+
+// Publish a draft blog
+exports.publishDraft = async (req, res) => {
+  try {
+    const draft = await Blog.findOne({
+      _id: req.params.id,
+      author: req.user._id,
+      published: false
+    });
+    
+    if (!draft) {
+      return res.status(404).json({
+        success: false,
+        message: 'Draft not found or you do not have permission to publish it'
+      });
+    }
+    
+    // Set published to true and publishedAt to current date
+    draft.published = true;
+    draft.publishedAt = new Date();
+    
+    await draft.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Draft published successfully',
+      data: draft
+    });
+  } catch (error) {
+    console.error('Error in publishDraft:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error publishing draft blog',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Comment on a blog
 // @route   POST /api/blogs/:id/comments
 // @access  Private

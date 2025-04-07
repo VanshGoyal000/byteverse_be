@@ -35,9 +35,26 @@ router.post('/:id/save', protect, saveBlog);
 // Get user's saved blogs
 router.get('/saved', protect, getSavedBlogs);
 
-// Draft routes
-router.get('/drafts', protect, getDraftBlogs);
-router.put('/drafts/:id', protect, updateDraftBlog);
-router.post('/drafts/:id/publish', protect, publishDraft);
+// Draft routes - Make sure these functions exist in the controller
+router.get('/drafts', protect, getDraftBlogs || ((req, res) => {
+  res.status(501).json({
+    success: false,
+    message: 'Draft functionality not implemented yet'
+  });
+}));
+
+router.put('/drafts/:id', protect, updateDraftBlog || ((req, res) => {
+  res.status(501).json({
+    success: false,
+    message: 'Draft update functionality not implemented yet'
+  });
+}));
+
+router.post('/drafts/:id/publish', protect, publishDraft || ((req, res) => {
+  res.status(501).json({
+    success: false,
+    message: 'Draft publishing functionality not implemented yet'
+  });
+}));
 
 module.exports = router;
