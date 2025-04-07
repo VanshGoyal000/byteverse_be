@@ -7,20 +7,26 @@ const Admin = require('../models/Admin');
 // Admin login
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { email, password, username } = req.body;
     
-    console.log(`Admin login attempt for username: ${username}`);
+    // Log the request details
+    console.log('Admin login attempt:', { email, username: username || 'not provided' });
     
-    // Validation
-    if (!username || !password) {
+    // Validation - require either email or username
+    if ((!email && !username) || !password) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Please provide username and password' 
+        message: 'Please provide email/username and password' 
       });
     }
     
+    // Create a query object that can search by email or username
+    const query = {};
+    if (email) query.email = email;
+    if (username) query.username = username;
+    
     // Check if admin exists
-    const admin = await Admin.findOne({ username });
+    const admin = await Admin.findOne(query);
     
     if (!admin) {
       console.log('Admin not found');
