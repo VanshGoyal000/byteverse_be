@@ -346,6 +346,111 @@ exports.likeBlog = async (req, res) => {
   }
 };
 
+// Save/unsave blog post to user's reading list
+exports.saveBlog = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+    
+    // Check if blog exists
+    const blog = await Blog.findById(id);
+    if (!blog) {
+      return res.status(404).json({
+        success: false,
+        message: 'Blog not found'
+      });
+    }
+    
+    const user = await User.findById(userId);
+    
+    // Check if blog is already saved
+    const isSaved = user.savedBlogs && user.savedBlogs.includes(id);
+    
+    if (isSaved) {
+      // Remove blog from saved list
+      user.savedBlogs = user.savedBlogs.filter(blogId => blogId.toString() !== id);
+    } else {
+      // Add blog to saved list
+      if (!user.savedBlogs) {
+        user.savedBlogs = [];
+      }
+      user.savedBlogs.push(id);
+    }
+    
+    await user.save();
+    
+    res.status(200).json({
+      success: true,
+      isSaved: !isSaved
+    });
+  } catch (error) {
+    console.error('Error in saveBlog:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error saving blog',
+      error: error.message
+    });
+  }
+};
+
+// Get all saved blogs for the current user
+exports.getSavedBlogs = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    
+    // Get user with populated saved blogs
+    const user = await User.findById(userId).populate({
+      path: 'savedBlogs',
+      select: 'title excerpt coverImage createdAt author',
+      populate: {
+        path: 'author',
+        select: 'name avatar'
+      }
+    });
+    
+    if (!user.savedBlogs) {
+      user.savedBlogs = [];
+      await user.save();
+    }
+    
+    res.status(200).json({
+      success: true,
+      count: user.savedBlogs.length,
+      data: user.savedBlogs
+    });
+  } catch (error) {
+    console.error('Error in getSavedBlogs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching saved blogs',
+      error: error.message
+    });
+  }
+};
+
+// Get draft blogs for the current user
+exports.getDraftBlogs = async (req, res) => {
+  try {
+    const drafts = await Blog.find({ 
+      author: req.user._id,
+      published: false
+    }).sort({ updatedAt: -1 });
+    
+    res.status(200).json({
+      success: true,
+      count: drafts.length,
+      data: drafts
+    });
+  } catch (error) {
+    console.error('Error in getDraftBlogs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching draft blogs',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Comment on a blog
 // @route   POST /api/blogs/:id/comments
 // @access  Private

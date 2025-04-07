@@ -52,6 +52,10 @@ const UserSchema = new mongoose.Schema({
   verificationExpire: Date,
   resetPasswordToken: String,
   resetPasswordExpire: Date,
+  savedBlogs: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Blog'
+  }],
   createdAt: {
     type: Date,
     default: Date.now
