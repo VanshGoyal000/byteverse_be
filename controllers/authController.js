@@ -127,10 +127,29 @@ exports.logout = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Explicitly include verification status in response
     res.status(200).json({
       success: true,
-      data: user
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        bio: user.bio,
+        website: user.website,
+        isVerified: user.isVerified === true, // Ensure boolean value
+        socialLinks: user.socialLinks,
+        createdAt: user.createdAt
+      }
     });
   } catch (error) {
     console.error('Error in getMe:', error);
@@ -410,6 +429,79 @@ exports.getPublicProfile = async (req, res) => {
   }
 };
 
+// @desc    Resend verification email
+// @route   POST /api/auth/resend-verification
+// @access  Public
+exports.resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide an email address'
+      });
+    }
+
+    // Find the user
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found with that email address'
+      });
+    }
+
+    // Check if already verified
+    if (user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is already verified'
+      });
+    }
+
+    // Create verification token
+    const verificationToken = crypto.randomBytes(20).toString('hex');
+    user.verificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+    user.verificationExpire = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    await user.save();
+
+    // Send verification email
+    const verificationUrl = `${req.protocol}://${req.get('host')}/api/auth/verify/${verificationToken}`;
+    
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'ByteVerse - Verify Your Email',
+        html: `<p>Please click the link below to verify your email:</p><p><a href="${verificationUrl}">${verificationUrl}</a></p>`
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: 'Verification email sent'
+      });
+    } catch (emailError) {
+      console.error('Error sending verification email:', emailError);
+      user.verificationToken = undefined;
+      user.verificationExpire = undefined;
+      await user.save();
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send verification email'
+      });
+    }
+  } catch (error) {
+    console.error('Error in resendVerification:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process request',
+      error: error.message
+    });
+  }
+};
+
 // Helper function to get token from model, create cookie and send response
 const sendTokenResponse = (user, statusCode, res) => {
   // Create token
@@ -436,7 +528,8 @@ const sendTokenResponse = (user, statusCode, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        avatar: user.avatar
+        avatar: user.avatar,
+        isVerified: user.isVerified === true // Force boolean value, not undefined
       }
     });
 };

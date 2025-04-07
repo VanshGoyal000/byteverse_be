@@ -10,7 +10,8 @@ const {
   forgotPassword,
   resetPassword,
   verifyEmail,
-  getPublicProfile
+  getPublicProfile,
+  resendVerification
 } = require('../controllers/authController');
 
 const { protect } = require('../middleware/authMiddleware');
@@ -28,6 +29,7 @@ router.put('/updatepassword', protect, updatePassword);
 router.post('/forgotpassword', forgotPassword);
 router.put('/resetpassword/:resettoken', resetPassword);
 router.get('/verify/:token', verifyEmail);
+router.post('/resend-verification', resendVerification);
 
 /**
  * Public profile route
