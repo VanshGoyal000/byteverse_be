@@ -40,6 +40,10 @@ const EventSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  registrationDeadline: {
+    type: Date,
+    default: null // if null, registration is open until the event date
+  },
   agenda: [
     {
       time: String,

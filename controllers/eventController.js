@@ -61,6 +61,11 @@ exports.getEvent = async (req, res) => {
 // Create new event
 exports.createEvent = async (req, res) => {
   try {
+    // Parse registration deadline if provided
+    if (req.body.registrationDeadline) {
+      req.body.registrationDeadline = new Date(req.body.registrationDeadline);
+    }
+    
     const event = await Event.create(req.body);
     
     res.status(201).json({
@@ -79,6 +84,11 @@ exports.createEvent = async (req, res) => {
 // Update event
 exports.updateEvent = async (req, res) => {
   try {
+    // Parse registration deadline if provided
+    if (req.body.registrationDeadline) {
+      req.body.registrationDeadline = new Date(req.body.registrationDeadline);
+    }
+    
     const event = await Event.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true

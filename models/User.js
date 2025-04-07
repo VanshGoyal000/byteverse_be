@@ -56,6 +56,14 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Blog'
   }],
+  points: {
+    type: Number,
+    default: 0
+  },
+  title: {
+    type: String,
+    default: "ByteVerse Explorer"
+  },
   createdAt: {
     type: Date,
     default: Date.now
