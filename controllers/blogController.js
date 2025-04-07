@@ -96,14 +96,8 @@ exports.getBlogs = async (req, res) => {
 // @access  Public
 exports.getBlog = async (req, res) => {
   try {
-    let blog;
-    
-    // Check if param is ID or slug
-    if (req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
-      blog = await Blog.findById(req.params.id).populate('author', 'name avatar bio website socialLinks');
-    } else {
-      blog = await Blog.findOne({ slug: req.params.id }).populate('author', 'name avatar bio website socialLinks');
-    }
+    const blog = await Blog.findById(req.params.id)
+      .populate('author', 'name avatar bio');
     
     if (!blog) {
       return res.status(404).json({
@@ -112,9 +106,18 @@ exports.getBlog = async (req, res) => {
       });
     }
     
-    // If blog is not published and user is not the author or admin
+    // Check if the blog is published or if the user is the author/admin
     if (!blog.published) {
-      if (!req.user || (req.user.id !== blog.author._id.toString() && req.user.role !== 'admin')) {
+      // If user is not authenticated, return 404
+      if (!req.user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Blog not found'
+        });
+      }
+      
+      // If user is not the author or an admin, return 404
+      if (req.user._id.toString() !== blog.author._id.toString() && req.user.role !== 'admin') {
         return res.status(404).json({
           success: false,
           message: 'Blog not found'
@@ -122,9 +125,22 @@ exports.getBlog = async (req, res) => {
       }
     }
     
-    // Increment view count
-    blog.views += 1;
-    await blog.save();
+    // Increment view count only if blog is published
+    // Add rate limiting to prevent view count manipulation
+    const userIP = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const viewKey = `${blog._id.toString()}_${userIP}`;
+    const viewsCache = req.app.locals.viewsCache || {}; // Use app local storage for simple cache
+    
+    const now = Date.now();
+    const lastViewed = viewsCache[viewKey] || 0;
+    
+    // Only count as a new view if it has been more than 30 minutes since last view from this IP
+    if (now - lastViewed > 30 * 60 * 1000) {
+      blog.views = (blog.views || 0) + 1;
+      await blog.save();
+      viewsCache[viewKey] = now;
+      req.app.locals.viewsCache = viewsCache;
+    }
     
     res.status(200).json({
       success: true,
@@ -134,7 +150,7 @@ exports.getBlog = async (req, res) => {
     console.error('Error in getBlog:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch blog',
+      message: 'Server error',
       error: error.message
     });
   }
@@ -294,45 +310,37 @@ exports.likeBlog = async (req, res) => {
         message: 'Blog not found'
       });
     }
+
+    // Check if user has already liked the blog
+    const userId = req.user._id.toString();
+    const likedByArray = blog.likedBy || [];
+    const alreadyLiked = likedByArray.some(id => id.toString() === userId);
     
-    // Check if the blog has already been liked by this user
-    const likedIndex = blog.likedBy.indexOf(req.user.id);
-    
-    if (likedIndex === -1) {
-      // Not liked, so add like
-      blog.likes += 1;
-      blog.likedBy.push(req.user.id);
-      
-      // Create notification for the blog author if it's not the same user
-      if (blog.author.toString() !== req.user.id) {
-        await createNotification({
-          recipient: blog.author,
-          type: 'like',
-          content: `${req.user.name} liked your blog post "${blog.title}"`,
-          resourceType: 'blog',
-          resourceId: blog._id,
-          sender: req.user.id,
-          link: `/blogs/${blog._id}`
-        });
-      }
+    // Toggle like status
+    if (alreadyLiked) {
+      // Remove like
+      blog.likedBy = likedByArray.filter(id => id.toString() !== userId);
+      blog.likes = Math.max(0, (blog.likes || 1) - 1); // Ensure likes don't go below 0
     } else {
-      // Already liked, so remove like
-      blog.likes -= 1;
-      blog.likedBy.splice(likedIndex, 1);
+      // Add like
+      blog.likedBy = [...likedByArray, userId];
+      blog.likes = (blog.likes || 0) + 1;
     }
     
     await blog.save();
     
     res.status(200).json({
       success: true,
-      likes: blog.likes,
-      liked: likedIndex === -1 // returns true if blog was liked, false if unliked
+      data: {
+        likes: blog.likes,
+        liked: !alreadyLiked
+      }
     });
   } catch (error) {
     console.error('Error in likeBlog:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to like/unlike blog',
+      message: 'Server error',
       error: error.message
     });
   }

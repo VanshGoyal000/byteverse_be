@@ -6,25 +6,22 @@ const {
   createBlog, 
   updateBlog, 
   deleteBlog,
-  getUserBlogs,
-  likeBlog,
-  addComment,
-  deleteComment
+  likeBlog 
 } = require('../controllers/blogController');
+const { protect, optionalAuth } = require('../middleware/authMiddleware');
 
-const { protect } = require('../middleware/authMiddleware');
+// Get all blogs & create new blog
+router.route('/')
+  .get(getBlogs)
+  .post(protect, createBlog);
 
-// Public routes
-router.get('/', getBlogs);
-router.get('/:id', getBlog);
+// Get, update, delete specific blog
+router.route('/:id')
+  .get(optionalAuth, getBlog) // Use optionalAuth to check if user is the author
+  .put(protect, updateBlog)
+  .delete(protect, deleteBlog);
 
-// Protected routes
-router.post('/', protect, createBlog);
-router.put('/:id', protect, updateBlog);
-router.delete('/:id', protect, deleteBlog);
-router.get('/user/blogs', protect, getUserBlogs);
-router.put('/:id/like', protect, likeBlog);
-router.post('/:id/comments', protect, addComment);
-router.delete('/:id/comments/:commentId', protect, deleteComment);
+// Like/unlike a blog
+router.post('/:id/like', protect, likeBlog);
 
 module.exports = router;
