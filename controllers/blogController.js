@@ -68,6 +68,21 @@ exports.getBlogs = async (req, res, next) => {
 // Get single blog with complete content
 exports.getBlog = async (req, res, next) => {
   try {
+    // Set CORS headers explicitly for this endpoint
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'https://byteverse.tech',
+      'https://www.byteverse.tech'
+    ];
+    
+    if (allowedOrigins.includes(origin) || !origin) {
+      res.header('Access-Control-Allow-Origin', origin || '*');
+      res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+      res.header('Access-Control-Allow-Credentials', 'true');
+    }
+    
     const blog = await Blog.findById(req.params.id);
     
     if (!blog) {

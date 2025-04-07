@@ -46,6 +46,32 @@ const allowedOrigins = [
   // Add any other domains that need access to your API
 ];
 
+// Handle CORS more explicitly
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Log the origin for debugging
+  console.log(`Request from origin: ${origin || 'No origin'}`);
+  
+  if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+    // Set CORS headers for allowed origins
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    if (req.method === 'OPTIONS') {
+      // Handle preflight requests
+      return res.status(200).end();
+    }
+  } else {
+    console.warn(`CORS blocked request from origin: ${origin}`);
+  }
+  
+  next();
+});
+
+// Use cors middleware with proper options as a backup
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl requests)
@@ -118,15 +144,15 @@ const community = require('./routes/community');
 const notifications = require('./routes/notifications');
 
 // Mount routers with specific middleware for blogs to handle larger payloads
-app.use('/api/auth', auth);
-app.use('/api/blogs', express.json({ limit: '10mb' }), blogs); // Special larger limit for blogs
-app.use('/api/events', events);
-app.use('/api/projects', projects);
-app.use('/api/registrations', registrations);
-app.use('/api/project-submissions', projectSubmissions);
-app.use('/api/admin', admin);
-app.use('/api/community', community);
-app.use('/api/notifications', notifications);
+app.use('/api/auth', cors(corsOptions), auth);
+app.use('/api/blogs', cors(corsOptions), express.json({ limit: '10mb' }), blogs); // Special larger limit and explicit CORS for blogs
+app.use('/api/events', cors(corsOptions), events);
+app.use('/api/projects', cors(corsOptions), projects);
+app.use('/api/registrations', cors(corsOptions), registrations);
+app.use('/api/project-submissions', cors(corsOptions), projectSubmissions);
+app.use('/api/admin', cors(corsOptions), admin);
+app.use('/api/community', cors(corsOptions), community);
+app.use('/api/notifications', cors(corsOptions), notifications);
 
 // Default route
 app.get('/', (req, res) => {

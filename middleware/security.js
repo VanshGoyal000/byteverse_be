@@ -110,25 +110,31 @@ exports.securityHeaders = (req, res, next) => {
  */
 exports.enhancedCors = (req, res, next) => {
   const origin = req.headers.origin;
-  
-  // Set CORS headers for all responses
   const allowedOrigins = [
     'http://localhost:5173',
     'https://byteverse.tech',
     'https://www.byteverse.tech'
   ];
   
-  if (origin && (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production')) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  console.log(`[CORS Middleware] Request from: ${origin || 'No origin'} - Path: ${req.path}`);
+  
+  // For preflight requests
+  if (req.method === 'OPTIONS') {
+    // Set CORS headers for preflight
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
+    return res.status(200).end();
   }
   
-  // Handle preflight OPTIONS requests explicitly
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+  // For regular requests
+  if (allowedOrigins.includes(origin) || !origin || process.env.NODE_ENV !== 'production') {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
   }
   
   next();
