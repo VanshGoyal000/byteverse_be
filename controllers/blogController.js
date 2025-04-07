@@ -1,62 +1,29 @@
 const Blog = require('../models/Blog');
 const User = require('../models/User');
 const { createNotification } = require('./notificationController');
-const { optimizeBlogContent } = require('../utils/contentOptimizer');
+const { optimizeBlogContent, optimizeBlogList } = require('../utils/contentOptimizer');
 
-// @desc    Get all blogs (with filters and pagination)
-// @route   GET /api/blogs
-// @access  Public
-exports.getBlogs = async (req, res) => {
+// Get all blogs with pagination
+exports.getBlogs = async (req, res, next) => {
   try {
-    // Build query
-    let query = {};
-    
-    // Public API only returns published posts
-    query.published = true;
-    
-    // Filter by category, tag, author
-    if (req.query.category) {
-      query.categories = req.query.category;
-    }
-    
-    if (req.query.tag) {
-      query.tags = req.query.tag;
-    }
-    
-    if (req.query.author) {
-      // Find author by slug or ID
-      let author;
-      if (mongoose.Types.ObjectId.isValid(req.query.author)) {
-        author = await User.findById(req.query.author);
-      }
-      
-      if (author) {
-        query.author = author._id;
-      }
-    }
-    
-    // Search in title or content
-    if (req.query.search) {
-      const searchRegex = new RegExp(req.query.search, 'i');
-      query.$or = [
-        { title: searchRegex },
-        { content: searchRegex }
-      ];
-    }
-    
-    // Pagination
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
-    const total = await Blog.countDocuments(query);
+    const total = await Blog.countDocuments({ status: 'published' });
+    
+    // Create query builder
+    const queryBuilder = Blog.find({ status: 'published' })
+      .sort({ createdAt: -1 }) // Latest first
+      .skip(startIndex)
+      .limit(limit)
+      .select('title excerpt categories coverImage authorName createdAt updatedAt featured'); // Select only needed fields
     
     // Execute query
-    const blogs = await Blog.find(query)
-      .populate('author', 'name avatar bio')
-      .sort({ publishedAt: -1 })
-      .skip(startIndex)
-      .limit(limit);
+    const blogs = await queryBuilder;
+    
+    // Optimize blogs for listing
+    const optimizedBlogs = optimizeBlogList(blogs);
     
     // Pagination result
     const pagination = {};
@@ -75,30 +42,33 @@ exports.getBlogs = async (req, res) => {
       };
     }
     
+    // Send response
     res.status(200).json({
       success: true,
       count: blogs.length,
-      total,
-      pagination,
-      data: blogs
+      pagination: {
+        ...pagination,
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      },
+      data: optimizedBlogs
     });
   } catch (error) {
-    console.error('Error in getBlogs:', error);
+    console.error('Error fetching blogs:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch blogs',
+      message: 'Error fetching blogs',
       error: error.message
     });
   }
 };
 
-// @desc    Get single blog
-// @route   GET /api/blogs/:id
-// @access  Public
-exports.getBlog = async (req, res) => {
+// Get single blog with complete content
+exports.getBlog = async (req, res, next) => {
   try {
-    const blog = await Blog.findById(req.params.id)
-      .populate('author', 'name avatar bio');
+    const blog = await Blog.findById(req.params.id);
     
     if (!blog) {
       return res.status(404).json({
@@ -107,69 +77,27 @@ exports.getBlog = async (req, res) => {
       });
     }
     
-    // Check if the blog is published or if the user is the author/admin
-    if (!blog.published) {
-      // If user is not authenticated, return 404
-      if (!req.user) {
-        return res.status(404).json({
-          success: false,
-          message: 'Blog not found'
-        });
-      }
-      
-      // If user is not the author or an admin, return 404
-      if (req.user._id.toString() !== blog.author._id.toString() && req.user.role !== 'admin') {
-        return res.status(404).json({
-          success: false,
-          message: 'Blog not found'
-        });
-      }
-    }
-    
-    // Increment view count only if blog is published
-    // Add rate limiting to prevent view count manipulation
-    const userIP = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    const viewKey = `${blog._id.toString()}_${userIP}`;
-    const viewsCache = req.app.locals.viewsCache || {}; // Use app local storage for simple cache
-    
-    const now = Date.now();
-    const lastViewed = viewsCache[viewKey] || 0;
-    
-    // Only count as a new view if it has been more than 30 minutes since last view from this IP
-    if (now - lastViewed > 30 * 60 * 1000) {
-      blog.views = (blog.views || 0) + 1;
-      await blog.save();
-      viewsCache[viewKey] = now;
-      req.app.locals.viewsCache = viewsCache;
-    }
+    // Increment view count
+    blog.viewCount = (blog.viewCount || 0) + 1;
+    await blog.save();
     
     res.status(200).json({
       success: true,
       data: blog
     });
   } catch (error) {
-    console.error('Error in getBlog:', error);
+    console.error('Error fetching blog:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: 'Error fetching blog',
       error: error.message
     });
   }
 };
 
-// @desc    Create new blog
-// @route   POST /api/blogs
-// @access  Private
-exports.createBlog = async (req, res) => {
+// Create new blog post
+exports.createBlog = async (req, res, next) => {
   try {
-    // Check if user is verified
-    if (!req.user.isVerified) {
-      return res.status(403).json({
-        success: false,
-        message: 'Your account must be verified before you can create blog posts'
-      });
-    }
-    
     // Optimize the blog content before saving
     const optimizedBlogData = optimizeBlogContent(req.body);
     
@@ -193,21 +121,7 @@ exports.createBlog = async (req, res) => {
       data: blog
     });
   } catch (error) {
-    console.warn('Error in createBlog:', error);
-    
-    // Send a more specific error message for validation errors
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid blog data',
-        error: error.message,
-        validationErrors: Object.keys(error.errors).reduce((acc, key) => {
-          acc[key] = error.errors[key].message;
-          return acc;
-        }, {})
-      });
-    }
-    
+    console.error('Error creating blog:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create blog',

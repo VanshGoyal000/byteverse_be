@@ -49,6 +49,66 @@ exports.processImageUrls = (content) => {
 };
 
 /**
+ * Create a truncated excerpt from HTML content
+ */
+exports.createExcerpt = (htmlContent, maxLength = 150) => {
+  if (!htmlContent) return '';
+  
+  // Remove HTML tags
+  const textContent = htmlContent.replace(/<[^>]*>/g, ' ');
+  
+  // Remove excessive spaces
+  const cleanedText = textContent.replace(/\s+/g, ' ').trim();
+  
+  // Truncate to maxLength
+  if (cleanedText.length <= maxLength) {
+    return cleanedText;
+  }
+  
+  // Find a good break point
+  const truncated = cleanedText.substr(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(' ');
+  
+  if (lastSpace > 0) {
+    return truncated.substr(0, lastSpace) + '...';
+  }
+  
+  return truncated + '...';
+};
+
+/**
+ * Optimize blog list items to reduce payload size
+ * This creates lightweight versions of blogs for listing pages
+ */
+exports.optimizeBlogList = (blogs) => {
+  if (!blogs || !Array.isArray(blogs)) return blogs;
+  
+  return blogs.map(blog => {
+    // Create a lightweight version for listing
+    const optimized = {
+      _id: blog._id,
+      title: blog.title,
+      excerpt: blog.excerpt || exports.createExcerpt(blog.content),
+      categories: blog.categories,
+      tags: blog.tags,
+      featured: blog.featured,
+      authorName: blog.authorName || 'Anonymous',
+      createdAt: blog.createdAt,
+      updatedAt: blog.updatedAt
+    };
+    
+    // Include a small version of cover image or just the URL
+    if (blog.coverImage) {
+      // If it's a data URL, we could create a thumbnail version
+      // For now, we'll just pass the URL as is
+      optimized.coverImage = blog.coverImage;
+    }
+    
+    return optimized;
+  });
+};
+
+/**
  * Main function to optimize blog content
  */
 exports.optimizeBlogContent = (blogData) => {
