@@ -178,14 +178,14 @@ exports.createBlog = async (req, res) => {
     const optimizedSize = JSON.stringify(optimizedBlogData).length;
     console.log(`Blog content optimized: ${originalSize} bytes → ${optimizedSize} bytes (${Math.round((originalSize - optimizedSize) / originalSize * 100)}% reduction)`);
     
-    // Add user to req.body
-    req.body.author = req.user.id;
-    req.body.authorName = req.user.name;
-    req.body.authorImage = req.user.avatar;
+    // Get user information for author details
+    const author = req.user || {};
     
+    // Create the blog with optimized content and author information
     const blog = await Blog.create({
       ...optimizedBlogData,
-      author: req.user.id // Assuming req.user is set by auth middleware
+      author: author._id || optimizedBlogData.author || null,
+      authorName: optimizedBlogData.authorName || author.name || 'Anonymous' // Ensure authorName is always provided
     });
     
     res.status(201).json({
@@ -193,7 +193,21 @@ exports.createBlog = async (req, res) => {
       data: blog
     });
   } catch (error) {
-    console.error('Error in createBlog:', error);
+    console.warn('Error in createBlog:', error);
+    
+    // Send a more specific error message for validation errors
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid blog data',
+        error: error.message,
+        validationErrors: Object.keys(error.errors).reduce((acc, key) => {
+          acc[key] = error.errors[key].message;
+          return acc;
+        }, {})
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Failed to create blog',

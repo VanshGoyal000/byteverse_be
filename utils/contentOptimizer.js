@@ -57,6 +57,11 @@ exports.optimizeBlogContent = (blogData) => {
   // Deep clone to avoid modifying the original
   const optimized = { ...blogData };
   
+  // Preserve author information
+  if (!optimized.authorName) {
+    optimized.authorName = 'Anonymous'; // Default author name if none provided
+  }
+  
   // Optimize the main HTML content
   if (optimized.content) {
     optimized.content = exports.optimizeHtml(optimized.content);

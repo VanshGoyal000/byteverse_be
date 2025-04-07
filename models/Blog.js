@@ -5,7 +5,7 @@ const BlogSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add a title'],
     trim: true,
-    maxlength: [100, 'Title cannot be more than 100 characters']
+    maxlength: [200, 'Title cannot be more than 200 characters']
   },
   slug: {
     type: String,
@@ -22,7 +22,7 @@ const BlogSchema = new mongoose.Schema({
   },
   excerpt: {
     type: String,
-    maxlength: [200, 'Excerpt cannot be more than 200 characters']
+    maxlength: [500, 'Excerpt cannot be more than 500 characters']
   },
   author: {
     type: mongoose.Schema.Types.ObjectId,
@@ -31,17 +31,19 @@ const BlogSchema = new mongoose.Schema({
   },
   authorName: {
     type: String,
-    required: true
+    default: 'Anonymous' // Add a default value to prevent validation errors
   },
   authorImage: {
     type: String
   },
-  categories: [{
-    type: String
-  }],
-  tags: [{
-    type: String
-  }],
+  categories: {
+    type: [String],
+    default: ['Uncategorized']
+  },
+  tags: {
+    type: [String],
+    default: []
+  },
   readTime: {
     type: Number
   },
@@ -87,7 +89,15 @@ const BlogSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     }
-  }]
+  }],
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
 }, {
   timestamps: true
 });
@@ -115,6 +125,11 @@ BlogSchema.pre('save', function(next) {
   // Set published date if being published
   if (this.isModified('published') && this.published && !this.publishedAt) {
     this.publishedAt = Date.now();
+  }
+
+  // Update the updatedAt timestamp before saving
+  if (!this.isNew) {
+    this.updatedAt = Date.now();
   }
   
   next();
