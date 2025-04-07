@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const slugify = require('slugify');
 
 const BlogSchema = new mongoose.Schema({
   title: {
@@ -9,32 +10,24 @@ const BlogSchema = new mongoose.Schema({
   },
   slug: {
     type: String,
-    unique: true,
-    lowercase: true
+    // Remove unique constraint to prevent duplicate key errors
+    index: true // Keep it indexed but not unique
   },
   content: {
     type: String,
     required: [true, 'Please add content']
   },
-  coverImage: {
-    type: String,
-    default: '/images/blog-placeholder.jpg'
-  },
   excerpt: {
     type: String,
     maxlength: [500, 'Excerpt cannot be more than 500 characters']
   },
-  author: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  authorName: {
-    type: String,
-    default: 'Anonymous' // Add a default value to prevent validation errors
-  },
-  authorImage: {
+  coverImage: {
     type: String
+  },
+  // Add image status field to track image validation
+  imageStatus: {
+    type: Object,
+    default: {}
   },
   categories: {
     type: [String],
@@ -44,52 +37,31 @@ const BlogSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
-  readTime: {
-    type: Number
-  },
-  published: {
-    type: Boolean,
-    default: false
-  },
-  publishedAt: {
-    type: Date
+  status: {
+    type: String,
+    enum: ['draft', 'published'],
+    default: 'published'
   },
   featured: {
     type: Boolean,
     default: false
   },
-  views: {
+  viewCount: {
     type: Number,
     default: 0
   },
-  likes: {
+  likeCount: {
     type: Number,
     default: 0
   },
-  likedBy: [{
+  author: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
-  }],
-  comments: [{
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    userName: {
-      type: String
-    },
-    userImage: {
-      type: String
-    },
-    comment: {
-      type: String,
-      required: true
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now
-    }
-  }],
+  },
+  authorName: {
+    type: String,
+    default: 'Anonymous'
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -98,38 +70,25 @@ const BlogSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
-}, {
-  timestamps: true
 });
 
-// Create slug from title before saving
+// Create slug from title before saving, but don't enforce uniqueness
+// Instead, append a timestamp if duplicate detection is needed
 BlogSchema.pre('save', function(next) {
-  if (this.isModified('title')) {
-    this.slug = this.title
-      .toLowerCase()
-      .replace(/[^\w\s]/g, '')
-      .replace(/\s+/g, '-');
-    
-    // Add a timestamp to ensure uniqueness
-    if (!this.isNew) {
-      this.slug += `-${Date.now()}`;
-    }
-  }
-  
-  // Calculate read time (approx. 200 words per minute)
-  if (this.isModified('content')) {
-    const wordCount = this.content.split(/\s+/).length;
-    this.readTime = Math.ceil(wordCount / 200);
-  }
-  
-  // Set published date if being published
-  if (this.isModified('published') && this.published && !this.publishedAt) {
-    this.publishedAt = Date.now();
-  }
-
-  // Update the updatedAt timestamp before saving
+  // Update the updatedAt timestamp if it's not a new document
   if (!this.isNew) {
     this.updatedAt = Date.now();
+  }
+  
+  // Create slug from title if not already set
+  if (!this.slug) {
+    this.slug = slugify(this.title, {
+      lower: true,
+      strict: true
+    });
+    
+    // Add timestamp to slug to ensure uniqueness
+    this.slug = `${this.slug}-${Date.now()}`;
   }
   
   next();

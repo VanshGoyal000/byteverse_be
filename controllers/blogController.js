@@ -2,6 +2,7 @@ const Blog = require('../models/Blog');
 const User = require('../models/User');
 const { createNotification } = require('./notificationController');
 const { optimizeBlogContent, optimizeBlogList } = require('../utils/contentOptimizer');
+const { validateBlogImages, sanitizeBlogContent } = require('../utils/imageValidator');
 
 // Get all blogs with pagination
 exports.getBlogs = async (req, res, next) => {
@@ -68,22 +69,14 @@ exports.getBlogs = async (req, res, next) => {
 // Get single blog with complete content
 exports.getBlog = async (req, res, next) => {
   try {
-    // Set CORS headers explicitly for this endpoint
-    const origin = req.headers.origin;
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'https://byteverse.tech',
-      'https://www.byteverse.tech'
-    ];
+    const { id } = req.params;
     
-    if (allowedOrigins.includes(origin) || !origin) {
-      res.header('Access-Control-Allow-Origin', origin || '*');
-      res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-      res.header('Access-Control-Allow-Credentials', 'true');
+    // Check if this is a special route rather than an ObjectId
+    if (id === 'saved' || id === 'user' || !id.match(/^[0-9a-fA-F]{24}$/)) {
+      return next();  // Pass control to the next matching route
     }
     
-    const blog = await Blog.findById(req.params.id);
+    const blog = await Blog.findById(id);
     
     if (!blog) {
       return res.status(404).json({
@@ -113,22 +106,34 @@ exports.getBlog = async (req, res, next) => {
 // Create new blog post
 exports.createBlog = async (req, res, next) => {
   try {
-    // Optimize the blog content before saving
+    // Optimize the blog content
     const optimizedBlogData = optimizeBlogContent(req.body);
     
-    // Log the size reduction
-    const originalSize = JSON.stringify(req.body).length;
-    const optimizedSize = JSON.stringify(optimizedBlogData).length;
-    console.log(`Blog content optimized: ${originalSize} bytes → ${optimizedSize} bytes (${Math.round((originalSize - optimizedSize) / originalSize * 100)}% reduction)`);
+    // Validate images in the blog (will perform this asynchronously)
+    const blogWithImageStatus = await validateBlogImages(optimizedBlogData);
+    
+    // Sanitize blog content to handle invalid images
+    if (blogWithImageStatus.imageStatus) {
+      blogWithImageStatus.content = sanitizeBlogContent(
+        blogWithImageStatus.content, 
+        blogWithImageStatus.imageStatus
+      );
+    }
     
     // Get user information for author details
     const author = req.user || {};
     
-    // Create the blog with optimized content and author information
+    // Create a timestamp-based slug to avoid duplicate key errors
+    const timestamp = Date.now();
+    const slug = optimizedBlogData.slug || 
+      `${optimizedBlogData.title.toLowerCase().replace(/[^\w]+/g, '-')}-${timestamp}`;
+    
+    // Create the blog with all processed data
     const blog = await Blog.create({
-      ...optimizedBlogData,
-      author: author._id || optimizedBlogData.author || null,
-      authorName: optimizedBlogData.authorName || author.name || 'Anonymous' // Ensure authorName is always provided
+      ...blogWithImageStatus,
+      slug, // Use the timestamp-based slug
+      author: author._id || blogWithImageStatus.author || null,
+      authorName: blogWithImageStatus.authorName || author.name || 'Anonymous'
     });
     
     res.status(201).json({
@@ -137,6 +142,16 @@ exports.createBlog = async (req, res, next) => {
     });
   } catch (error) {
     console.error('Error creating blog:', error);
+    
+    // Check for duplicate key errors
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'A blog with this title already exists. Please choose a different title.',
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Failed to create blog',
