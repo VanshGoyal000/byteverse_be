@@ -181,6 +181,11 @@ exports.validateRequest = (schema) => {
  * Content size checker middleware - More flexible limits based on content type
  */
 exports.contentSizeChecker = (req, res, next) => {
+  // Skip size checks for GET requests
+  if (req.method === 'GET') {
+    return next();
+  }
+  
   // Skip size checks for certain endpoints that need to handle larger payloads
   const largeContentEndpoints = [
     '/api/blogs',
@@ -191,6 +196,12 @@ exports.contentSizeChecker = (req, res, next) => {
   const isLargeContentEndpoint = largeContentEndpoints.some(endpoint => 
     req.path.startsWith(endpoint)
   );
+  
+  // For blog-related endpoints, we already set a custom middleware with higher limits,
+  // so we can skip additional checks
+  if (isLargeContentEndpoint) {
+    return next();
+  }
   
   // Get content length from headers
   const contentLength = parseInt(req.headers['content-length'] || 0, 10);
@@ -204,7 +215,8 @@ exports.contentSizeChecker = (req, res, next) => {
       });
     }
     
-    // For large content endpoints, enforce a 10mb limit
+    // For large content endpoints, this shouldn't execute due to the skip above,
+    // but just in case
     if (isLargeContentEndpoint && contentLength > 10 * 1024 * 1024) {
       return res.status(413).json({
         success: false,

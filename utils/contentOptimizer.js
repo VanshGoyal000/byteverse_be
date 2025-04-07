@@ -22,6 +22,8 @@ exports.optimizeHtml = (html) => {
  * This function can be expanded to actually resize/compress images
  */
 exports.processImageUrls = (content) => {
+  if (typeof content !== 'string') return content;
+  
   // Simple check to warn about large images
   const imgDataUrlRegex = /data:image\/[^;]+;base64,([^"')\s]+)/gi;
   let match;
@@ -33,9 +35,9 @@ exports.processImageUrls = (content) => {
     // Estimate size: base64 string length * 0.75 gives approximate byte size
     const approximateByteSize = base64Data.length * 0.75;
     
-    if (approximateByteSize > 1000000) { // 1MB
+    if (approximateByteSize > 500000) { // 500KB
       largeImages++;
-      console.warn(`Large image detected in content (approx ${Math.round(approximateByteSize/1024/1024)}MB)`);
+      console.warn(`Large image detected in content (approx ${Math.round(approximateByteSize/1024)}KB)`);
     }
   }
   
@@ -62,11 +64,12 @@ exports.optimizeBlogContent = (blogData) => {
   }
   
   // Handle cover image if it's a data URL
-  if (optimized.coverImage && optimized.coverImage.startsWith('data:image')) {
+  if (optimized.coverImage && typeof optimized.coverImage === 'string' && 
+      optimized.coverImage.startsWith('data:image')) {
     exports.processImageUrls(optimized.coverImage);
     
     // If the cover image is very large, log a warning
-    if (optimized.coverImage.length > 1000000) {
+    if (optimized.coverImage.length > 500000) {
       console.warn('Large cover image detected. Consider using external image hosting.');
     }
   }

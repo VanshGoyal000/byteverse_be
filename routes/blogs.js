@@ -15,6 +15,10 @@ const {
 } = require('../controllers/blogController');
 const { protect, optionalAuth } = require('../middleware/authMiddleware');
 
+// Apply specific middleware for the blog routes that might have large content
+router.use(express.json({ limit: '10mb' }));
+router.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 // Get all blogs & create new blog
 router.route('/')
   .get(getBlogs)
