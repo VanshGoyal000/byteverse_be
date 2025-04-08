@@ -22,7 +22,7 @@ exports.protect = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Set user in request
+    // Set user in request - include name and other essential fields
     req.user = await User.findById(decoded.id).select('-password');
     
     if (!req.user) {

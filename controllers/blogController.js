@@ -4,6 +4,29 @@ const { createNotification } = require('./notificationController');
 const { optimizeBlogContent, optimizeBlogList } = require('../utils/contentOptimizer');
 const { validateBlogImages, sanitizeBlogContent } = require('../utils/imageValidator');
 
+// Helper function to clean HTML content
+const cleanHtmlContent = (html) => {
+  if (!html) return '';
+  
+  try {
+    // Use regular expressions to remove problematic attributes
+    let cleanedHtml = html
+      // Remove all data-* attributes
+      .replace(/\s+data-[^=]*="[^"]*"/g, '')
+      // Remove class attributes
+      .replace(/\s+class="[^"]*"/g, '')
+      // Remove style attributes
+      .replace(/\s+style="[^"]*"/g, '')
+      // Remove id attributes
+      .replace(/\s+id="[^"]*"/g, '');
+    
+    return cleanedHtml;
+  } catch (e) {
+    console.error('Error cleaning HTML:', e);
+    return html;
+  }
+};
+
 // Get all blogs with pagination
 exports.getBlogs = async (req, res, next) => {
   try {
@@ -76,13 +99,25 @@ exports.getBlog = async (req, res, next) => {
       return next();  // Pass control to the next matching route
     }
     
-    const blog = await Blog.findById(id);
+    const blog = await Blog.findById(id).populate('author', 'name');
     
     if (!blog) {
       return res.status(404).json({
         success: false,
         message: 'Blog not found'
       });
+    }
+    
+    // Clean HTML content before sending
+    if (blog.content) {
+      blog.content = cleanHtmlContent(blog.content);
+    }
+    
+    // Ensure author name is available
+    if (!blog.authorName && blog.author && blog.author.name) {
+      blog.authorName = blog.author.name;
+    } else if (!blog.authorName) {
+      blog.authorName = 'Anonymous';
     }
     
     // Increment view count
@@ -127,6 +162,10 @@ exports.createBlog = async (req, res, next) => {
     const timestamp = Date.now();
     const slug = optimizedBlogData.slug || 
       `${optimizedBlogData.title.toLowerCase().replace(/[^\w]+/g, '-')}-${timestamp}`;
+    
+    // Make sure we have author information
+    const user = req.user || {};
+    const authorName = user.name || req.body.authorName || 'Anonymous';
     
     // Create the blog with all processed data
     const blog = await Blog.create({
