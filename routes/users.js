@@ -1,32 +1,22 @@
 const express = require('express');
 const router = express.Router();
+const userController = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
-const { 
-  getUser, 
-  updateUser, 
-  getUserByUsername,
-  getUserProfileByUsername,
-  getUserBadges,
-  getUserActivity,
-  getUserProfile, 
-  getMyProfile, 
-  updateProfile 
-} = require('../controllers/userController');
 
 // User profile routes
-router.get('/profile/:username', getUserProfileByUsername);
-router.get('/:id', getUser);
-router.put('/:id', protect, updateUser);
+router.get('/profile/:username', userController.getUserProfileByUsername);
+router.get('/:id', userController.getUser);
+router.put('/:id', protect, userController.updateUser);
 
 // User gamification routes
-router.get('/:id/badges', getUserBadges);
-router.get('/:id/activity', getUserActivity);
+router.get('/:id/badges', userController.getUserBadges);
+router.get('/:id/activity', userController.getUserActivity);
 
 // Public routes
-router.get('/profile/:username', getUserProfile);
+router.get('/profile/:username', userController.getUserProfile);
 
 // Protected routes (require authentication)
-router.get('/me', protect, getMyProfile);
-router.put('/me', protect, updateProfile);
+router.get('/me', protect, userController.getMyProfile);
+router.put('/me', protect, userController.updateProfile);
 
 module.exports = router;

@@ -1,6 +1,5 @@
 const User = require('../models/User');
 const Blog = require('../models/Blog');
-const Project = require('../models/Project');
 
 // Get user profile by username
 exports.getUserProfile = async (req, res) => {
@@ -31,12 +30,16 @@ exports.getUserProfile = async (req, res) => {
     // Get user's projects if Project model exists
     let projects = [];
     try {
-      projects = await Project.find({ author: user._id })
-        .select('title description thumbnail createdAt')
-        .sort({ createdAt: -1 })
-        .limit(5);
+      // Only try to fetch projects if the model exists
+      if (mongoose.modelNames().includes('Project')) {
+        const Project = require('../models/Project');
+        projects = await Project.find({ author: user._id })
+          .select('title description thumbnail createdAt')
+          .sort({ createdAt: -1 })
+          .limit(5);
+      }
     } catch (error) {
-      console.warn('Error fetching projects or Project model not defined:', error.message);
+      console.warn('Error fetching projects:', error.message);
     }
     
     // Prepare response data

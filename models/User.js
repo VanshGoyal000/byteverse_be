@@ -77,20 +77,29 @@ const UserSchema = new mongoose.Schema({
   }]
 });
 
+// Create username from email if not provided
+UserSchema.pre('save', function(next) {
+  if (!this.username && this.email) {
+    this.username = this.email.split('@')[0].toLowerCase();
+  }
+  next();
+});
+
 // Encrypt password using bcrypt
 UserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
-
+  
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 // Sign JWT and return
 UserSchema.methods.getSignedJwtToken = function() {
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE
+    expiresIn: process.env.JWT_EXPIRE || '30d'
   });
 };
 
@@ -111,7 +120,7 @@ UserSchema.methods.getResetPasswordToken = function() {
     .digest('hex');
 
   // Set expire
-  this.passwordResetExpire = Date.now() + 10 * 60 * 1000;
+  this.passwordResetExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
 
   return resetToken;
 };
@@ -132,14 +141,5 @@ UserSchema.methods.getEmailVerificationToken = function() {
 
   return verificationToken;
 };
-
-// Create username from email if not provided
-UserSchema.pre('save', function(next) {
-  if (!this.username && this.email) {
-    // Create a username based on the email address (before the @ symbol)
-    this.username = this.email.split('@')[0].toLowerCase();
-  }
-  next();
-});
 
 module.exports = mongoose.model('User', UserSchema);
