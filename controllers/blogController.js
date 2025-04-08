@@ -10,17 +10,19 @@ const cleanHtmlContent = (html) => {
   
   try {
     // Use regular expressions to remove problematic attributes
-    let cleanedHtml = html
-      // Remove all data-* attributes
+    return html
+      // Remove all data attributes
       .replace(/\s+data-[^=]*="[^"]*"/g, '')
       // Remove class attributes
       .replace(/\s+class="[^"]*"/g, '')
       // Remove style attributes
       .replace(/\s+style="[^"]*"/g, '')
       // Remove id attributes
-      .replace(/\s+id="[^"]*"/g, '');
-    
-    return cleanedHtml;
+      .replace(/\s+id="[^"]*"/g, '')
+      // Convert div-wrapped code blocks to proper pre > code structure
+      .replace(/<div[^>]*>[\s\n]*<div[^>]*>[\s\n]*(\w+)<\/div>[\s\n]*<div[^>]*>[\s\n]*<div[^>]*>[\s\n]*<div[^>]*>.*?<\/div>[\s\n]*<\/div>[\s\n]*<\/div>[\s\n]*<div[^>]*>([\s\S]*?)<\/div>[\s\n]*<\/div>/g, '<pre><code class="language-$1">$2</code></pre>')
+      // Clean up any leftover nested divs in code blocks
+      .replace(/<div[^>]*><code[^>]*>([\s\S]*?)<\/code><\/div>/g, '<pre><code>$1</code></pre>');
   } catch (e) {
     console.error('Error cleaning HTML:', e);
     return html;
