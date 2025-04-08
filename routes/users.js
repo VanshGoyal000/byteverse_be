@@ -1,21 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/auth');
 
-// User profile routes
-router.get('/profile/:username', userController.getUserProfileByUsername);
-router.get('/:id', userController.getUser);
-router.put('/:id', protect, userController.updateUser);
+// Make sure the controller is properly imported and has all required methods
+console.log('Loading user routes with controller methods:', 
+  Object.keys(userController).join(', '));
 
-// User gamification routes
-router.get('/:id/badges', userController.getUserBadges);
-router.get('/:id/activity', userController.getUserActivity);
-
-// Public routes
+// Public routes - get user profile by username
 router.get('/profile/:username', userController.getUserProfile);
 
-// Protected routes (require authentication)
+// Protected routes - require authentication
 router.get('/me', protect, userController.getMyProfile);
 router.put('/me', protect, userController.updateProfile);
 

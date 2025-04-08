@@ -1,12 +1,12 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
-const Blog = require('../models/Blog');
 
 // Get user profile by username
 exports.getUserProfile = async (req, res) => {
   try {
     const { username } = req.params;
     
-    // Find user by username (case insensitive)
+    // Find user by username or name (case insensitive)
     const user = await User.findOne({
       $or: [
         { username: new RegExp(`^${username}$`, 'i') },
@@ -21,18 +21,25 @@ exports.getUserProfile = async (req, res) => {
       });
     }
     
-    // Get user's blogs
-    const blogs = await Blog.find({ author: user._id })
-      .select('title excerpt coverImage createdAt likeCount viewCount')
-      .sort({ createdAt: -1 })
-      .limit(5);
+    // Get user's blogs if Blog model exists
+    let blogs = [];
+    try {
+      if (mongoose.modelNames().includes('Blog')) {
+        const Blog = mongoose.model('Blog');
+        blogs = await Blog.find({ author: user._id })
+          .select('title excerpt coverImage createdAt likeCount viewCount')
+          .sort({ createdAt: -1 })
+          .limit(5);
+      }
+    } catch (error) {
+      console.warn('Error fetching blogs:', error.message);
+    }
     
     // Get user's projects if Project model exists
     let projects = [];
     try {
-      // Only try to fetch projects if the model exists
       if (mongoose.modelNames().includes('Project')) {
-        const Project = require('../models/Project');
+        const Project = mongoose.model('Project');
         projects = await Project.find({ author: user._id })
           .select('title description thumbnail createdAt')
           .sort({ createdAt: -1 })
@@ -48,10 +55,10 @@ exports.getUserProfile = async (req, res) => {
       name: user.name,
       username: user.username,
       email: user.isEmailPublic ? user.email : undefined,
-      bio: user.bio,
-      avatar: user.avatar,
-      website: user.website,
-      socialLinks: user.socialLinks,
+      bio: user.bio || '',
+      avatar: user.avatar || '',
+      website: user.website || '',
+      socialLinks: user.socialLinks || {},
       joinedAt: user.createdAt,
       role: user.role,
       blogs,
