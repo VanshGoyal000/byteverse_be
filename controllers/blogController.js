@@ -110,9 +110,23 @@ exports.getBlog = async (req, res, next) => {
       });
     }
     
-    // Clean HTML content before sending
-    if (blog.content) {
-      blog.content = cleanHtmlContent(blog.content);
+    // Ensure content is a string, not an object
+    if (blog.content && typeof blog.content === 'object') {
+      blog.content = JSON.stringify(blog.content);
+    }
+    
+    // Clean HTML content if it's a string
+    if (blog.content && typeof blog.content === 'string') {
+      // Use regular expressions to remove problematic attributes
+      blog.content = blog.content
+        // Remove all data attributes
+        .replace(/\s+data-[^=]*="[^"]*"/g, '')
+        // Remove class attributes
+        .replace(/\s+class="[^"]*"/g, '')
+        // Remove style attributes
+        .replace(/\s+style="[^"]*"/g, '')
+        // Remove id attributes
+        .replace(/\s+id="[^"]*"/g, '');
     }
     
     // Ensure author name is available
@@ -125,6 +139,13 @@ exports.getBlog = async (req, res, next) => {
     // Increment view count
     blog.viewCount = (blog.viewCount || 0) + 1;
     await blog.save();
+    
+    // Debug log to check what's being sent
+    console.log('Sending blog content type:', typeof blog.content);
+    console.log('Blog content preview:', 
+      typeof blog.content === 'string' 
+        ? blog.content.substring(0, 100) 
+        : 'Not a string');
     
     res.status(200).json({
       success: true,
