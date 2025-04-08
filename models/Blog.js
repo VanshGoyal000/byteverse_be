@@ -72,6 +72,18 @@ const BlogSchema = new mongoose.Schema({
   }
 });
 
+// Add virtual for comments
+BlogSchema.virtual('comments', {
+  ref: 'Comment',
+  localField: '_id',
+  foreignField: 'blog',
+  justOne: false
+});
+
+// Enable virtuals when converted to JSON
+BlogSchema.set('toJSON', { virtuals: true });
+BlogSchema.set('toObject', { virtuals: true });
+
 // Create slug from title before saving, but don't enforce uniqueness
 // Instead, append a timestamp if duplicate detection is needed
 BlogSchema.pre('save', function(next) {

@@ -142,6 +142,7 @@ const projectSubmissions = require('./routes/projectSubmissions');
 const admin = require('./routes/admin');
 const community = require('./routes/community');
 const notifications = require('./routes/notifications');
+const users = require('./routes/users'); // Add users route
 
 // Mount routers with specific middleware for blogs to handle larger payloads
 app.use('/api/auth', cors(corsOptions), auth);
@@ -153,6 +154,7 @@ app.use('/api/project-submissions', cors(corsOptions), projectSubmissions);
 app.use('/api/admin', cors(corsOptions), admin);
 app.use('/api/community', cors(corsOptions), community);
 app.use('/api/notifications', cors(corsOptions), notifications);
+app.use('/api/users', cors(corsOptions), users); // Mount the users router
 
 // Default route
 app.get('/', (req, res) => {

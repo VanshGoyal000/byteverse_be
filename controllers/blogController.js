@@ -378,6 +378,49 @@ exports.likeBlog = async (req, res) => {
   }
 };
 
+// Like a blog post
+exports.likeBlog = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if id is a valid ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid blog ID'
+      });
+    }
+    
+    // Find the blog
+    const blog = await Blog.findById(id);
+    
+    if (!blog) {
+      return res.status(404).json({
+        success: false,
+        message: 'Blog not found'
+      });
+    }
+    
+    // Increment the like count
+    blog.likeCount = (blog.likeCount || 0) + 1;
+    await blog.save();
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        likeCount: blog.likeCount
+      }
+    });
+  } catch (error) {
+    console.error('Error liking blog:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to like blog',
+      error: error.message
+    });
+  }
+};
+
 // Save/unsave blog post to user's reading list
 exports.saveBlog = async (req, res) => {
   try {

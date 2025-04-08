@@ -7,9 +7,13 @@ const {
   updateBlog, 
   deleteBlog,
   getSavedBlogs,
-  getUserBlogs
+  getUserBlogs,
+  likeBlog
 } = require('../controllers/blogController');
 const { protect } = require('../middleware/auth');
+
+// Import comments router
+const commentRouter = require('./comments');
 
 // Apply specific middleware for the blog routes that might have large content
 router.use(express.json({ limit: '10mb' }));
@@ -29,5 +33,12 @@ router.route('/:id')
   .get(getBlog)
   .put(protect, updateBlog)
   .delete(protect, deleteBlog);
+
+// Like a blog
+router.route('/:id/like')
+  .post(likeBlog);
+
+// Re-route into comment router
+router.use('/:blogId/comments', commentRouter);
 
 module.exports = router;

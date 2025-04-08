@@ -7,7 +7,10 @@ const {
   getUserByUsername,
   getUserProfileByUsername,
   getUserBadges,
-  getUserActivity
+  getUserActivity,
+  getUserProfile, 
+  getMyProfile, 
+  updateProfile 
 } = require('../controllers/userController');
 
 // User profile routes
@@ -18,5 +21,12 @@ router.put('/:id', protect, updateUser);
 // User gamification routes
 router.get('/:id/badges', getUserBadges);
 router.get('/:id/activity', getUserActivity);
+
+// Public routes
+router.get('/profile/:username', getUserProfile);
+
+// Protected routes (require authentication)
+router.get('/me', protect, getMyProfile);
+router.put('/me', protect, updateProfile);
 
 module.exports = router;
