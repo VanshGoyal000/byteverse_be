@@ -1,5 +1,21 @@
 const mongoose = require('mongoose');
-const slugify = require('slugify');
+
+const CommentSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'User'
+  },
+  userName: String,
+  userImage: String,
+  comment: {
+    type: String,
+    required: [true, 'Please add a comment']
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
 
 const BlogSchema = new mongoose.Schema({
   title: {
@@ -69,41 +85,40 @@ const BlogSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  comments: [CommentSchema],
+  likedBy: [{
+    type: mongoose.Schema.ObjectId,
+    ref: 'User'
+  }]
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
-// Add virtual for comments
-BlogSchema.virtual('comments', {
-  ref: 'Comment',
-  localField: '_id',
-  foreignField: 'blog',
-  justOne: false
-});
-
-// Enable virtuals when converted to JSON
-BlogSchema.set('toJSON', { virtuals: true });
-BlogSchema.set('toObject', { virtuals: true });
-
-// Create slug from title before saving, but don't enforce uniqueness
-// Instead, append a timestamp if duplicate detection is needed
+// Generate slug from title if not provided
 BlogSchema.pre('save', function(next) {
-  // Update the updatedAt timestamp if it's not a new document
-  if (!this.isNew) {
-    this.updatedAt = Date.now();
+  if (!this.slug) {
+    this.slug = this.title
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
   
-  // Create slug from title if not already set
-  if (!this.slug) {
-    this.slug = slugify(this.title, {
-      lower: true,
-      strict: true
-    });
-    
-    // Add timestamp to slug to ensure uniqueness
-    this.slug = `${this.slug}-${Date.now()}`;
-  }
+  // Initialize empty arrays if needed
+  if (!this.comments) this.comments = [];
+  if (!this.categories) this.categories = [];
+  if (!this.tags) this.tags = [];
+  if (!this.likedBy) this.likedBy = [];
   
   next();
+});
+
+// Add non-conflicting virtuals
+BlogSchema.virtual('commentsCount').get(function() {
+  return this.comments ? this.comments.length : 0;
 });
 
 module.exports = mongoose.model('Blog', BlogSchema);

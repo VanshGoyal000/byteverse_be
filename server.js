@@ -144,6 +144,12 @@ const community = require('./routes/community');
 const notifications = require('./routes/notifications');
 const users = require('./routes/users'); // Add users route
 
+// Import routes
+const authRoutes = require('./routes/auth');
+const blogRoutes = require('./routes/blogs');
+const eventRoutes = require('./routes/events');
+const adminRoutes = require('./routes/adminRoutes'); // Ensure this is imported
+
 // Mount routers with specific middleware for blogs to handle larger payloads
 app.use('/api/auth', cors(corsOptions), auth);
 app.use('/api/blogs', cors(corsOptions), express.json({ limit: '10mb' }), blogs); // Special larger limit and explicit CORS for blogs
@@ -155,6 +161,13 @@ app.use('/api/admin', cors(corsOptions), admin);
 app.use('/api/community', cors(corsOptions), community);
 app.use('/api/notifications', cors(corsOptions), notifications);
 app.use('/api/users', cors(corsOptions), users); // Mount the users router
+
+// Mount routers
+app.use('/api/auth', authRoutes);
+app.use('/api/blogs', blogRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/adminRoutes', adminRoutes); // Mount admin routes
+app.use('/api/admin', adminRoutes); // Also mount at /api/admin for flexibility
 
 // Default route
 app.get('/', (req, res) => {

@@ -627,6 +627,11 @@ exports.addComment = async (req, res) => {
       });
     }
     
+    // Initialize comments array if it doesn't exist
+    if (!blog.comments) {
+      blog.comments = [];
+    }
+    
     const newComment = {
       user: req.user.id,
       userName: req.user.name,
@@ -638,16 +643,21 @@ exports.addComment = async (req, res) => {
     await blog.save();
     
     // Create notification for blog author if commenter is not the author
-    if (blog.author.toString() !== req.user.id) {
-      await createNotification({
-        recipient: blog.author,
-        type: 'comment',
-        content: `${req.user.name} commented on your blog post "${blog.title}"`,
-        resourceType: 'blog',
-        resourceId: blog._id,
-        sender: req.user.id,
-        link: `/blogs/${blog._id}#comments`
-      });
+    if (blog.author && blog.author.toString() !== req.user.id) {
+      try {
+        await createNotification({
+          recipient: blog.author,
+          type: 'comment',
+          content: `${req.user.name} commented on your blog post "${blog.title}"`,
+          resourceType: 'blog',
+          resourceId: blog._id,
+          sender: req.user.id,
+          link: `/blogs/${blog._id}#comments`
+        });
+      } catch (notificationError) {
+        console.error('Error creating notification:', notificationError);
+        // Continue even if notification fails
+      }
     }
     
     res.status(201).json({

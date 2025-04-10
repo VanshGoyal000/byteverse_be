@@ -47,11 +47,11 @@ router.post('/login', async (req, res) => {
       });
     }
     
-    // Create JWT token with a valid expiresIn value
+    // Create JWT token with a properly formatted expiresIn value
     const token = jwt.sign(
       { id: admin._id, role: 'admin' },
       process.env.JWT_SECRET || 'byteverse_secret_key',
-      { expiresIn: '24h' } // Fix: Use a valid time string - '24h' for 24 hours
+      { expiresIn: '24h' } // Valid format for expiresIn
     );
     
     console.log('Admin login successful');
@@ -72,7 +72,7 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Server error', 
-      error: error.message  // Include the actual error message for debugging
+      error: error.message
     });
   }
 });

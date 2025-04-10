@@ -49,8 +49,8 @@ AdminSchema.pre('save', async function(next) {
 AdminSchema.methods.getSignedJwtToken = function() {
   return jwt.sign(
     { id: this._id, isAdmin: true },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRE }
+    process.env.JWT_SECRET || 'byteverse_secret_key',
+    { expiresIn: process.env.JWT_EXPIRE || '30d' } // Add default value with valid format
   );
 };
 

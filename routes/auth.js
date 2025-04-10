@@ -34,7 +34,7 @@ router.post('/resend-verification', resendVerification);
 /**
  * Public profile route
  */
-// Modified route to handle username-based lookups
+// Modified route to handle username-based lookups with clear endpoint path
 router.get('/users/profile/:identifier', getPublicProfile);
 
 /**
