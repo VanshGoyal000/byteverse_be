@@ -148,7 +148,8 @@ const users = require('./routes/users'); // Add users route
 const authRoutes = require('./routes/auth');
 const blogRoutes = require('./routes/blogs');
 const eventRoutes = require('./routes/events');
-const adminRoutes = require('./routes/adminRoutes'); // Ensure this is imported
+const adminRoutes = require('./routes/adminRoutes');
+const adminAuthRoutes = require('./routes/admin');
 
 // Mount routers with specific middleware for blogs to handle larger payloads
 app.use('/api/auth', cors(corsOptions), auth);
@@ -166,8 +167,8 @@ app.use('/api/users', cors(corsOptions), users); // Mount the users router
 app.use('/api/auth', authRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/events', eventRoutes);
-app.use('/api/adminRoutes', adminRoutes); // Mount admin routes
-app.use('/api/admin', adminRoutes); // Also mount at /api/admin for flexibility
+app.use('/api/admin', adminAuthRoutes); // Mount admin auth routes at /api/admin
+app.use('/api/adminRoutes', adminRoutes); // Keep this for backwards compatibility
 
 // Default route
 app.get('/', (req, res) => {
