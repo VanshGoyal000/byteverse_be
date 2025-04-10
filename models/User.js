@@ -6,31 +6,27 @@ const crypto = require('crypto');
 const UserSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Please add a name']
+    required: [true, 'Please add a name'],
+    trim: true,
+    maxlength: [50, 'Name cannot be more than 50 characters']
   },
   username: {
     type: String,
-    unique: true,
-    sparse: true, // Allow null values without triggering uniqueness constraint
     trim: true,
-    lowercase: true
+    unique: true,
+    sparse: true,
+    lowercase: true,
+    match: [/^[a-z0-9_.-]+$/, 'Username can only contain lowercase letters, numbers, and _.-'],
+    maxlength: [30, 'Username cannot be more than 30 characters']
   },
   email: {
     type: String,
     required: [true, 'Please add an email'],
     unique: true,
     match: [
-      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
       'Please add a valid email'
     ]
-  },
-  isEmailVerified: {
-    type: Boolean,
-    default: false
-  },
-  isEmailPublic: {
-    type: Boolean,
-    default: false
   },
   password: {
     type: String,
@@ -51,36 +47,75 @@ const UserSchema = new mongoose.Schema({
     maxlength: [500, 'Bio cannot be more than 500 characters']
   },
   website: {
-    type: String
+    type: String,
+    match: [
+      /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w.-]*)*\/?$/,
+      'Please use a valid URL'
+    ]
+  },
+  location: {
+    type: String,
+    maxlength: [100, 'Location cannot be more than 100 characters']
   },
   socialLinks: {
+    twitter: String,
     github: String,
     linkedin: String,
-    twitter: String,
-    instagram: String
+    other: String
   },
-  passwordResetToken: String,
-  passwordResetExpire: Date,
-  emailVerificationToken: String,
-  emailVerificationExpire: Date,
-  createdAt: {
+  joinDate: {
     type: Date,
     default: Date.now
   },
-  lastActive: {
-    type: Date,
-    default: Date.now
+  isVerified: {
+    type: Boolean,
+    default: false
   },
+  verificationToken: String,
+  verificationExpire: Date,
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
   savedBlogs: [{
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.ObjectId,
     ref: 'Blog'
-  }]
+  }],
+  skills: [String]
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
-// Create username from email if not provided
-UserSchema.pre('save', function(next) {
-  if (!this.username && this.email) {
-    this.username = this.email.split('@')[0].toLowerCase();
+// Generate username from name if not provided
+UserSchema.pre('save', async function(next) {
+  // Only run this if username is not set or is modified
+  if (!this.username || this.isModified('username')) {
+    // If username is not provided, generate from name
+    if (!this.username && this.name) {
+      // Create base username from name (lowercase, remove special chars, replace spaces with -)
+      let baseUsername = this.name.toLowerCase()
+        .replace(/[^\w\s]/gi, '')
+        .replace(/\s+/g, '-');
+      
+      // Limit length
+      if (baseUsername.length > 20) {
+        baseUsername = baseUsername.substring(0, 20);
+      }
+      
+      // Check if username exists
+      let username = baseUsername;
+      let usernameExists = await this.constructor.findOne({ username });
+      let counter = 1;
+      
+      // If username exists, append number and try again
+      while (usernameExists) {
+        username = `${baseUsername}${counter}`;
+        usernameExists = await this.constructor.findOne({ username });
+        counter++;
+      }
+      
+      this.username = username;
+    }
   }
   next();
 });

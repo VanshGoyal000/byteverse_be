@@ -6,39 +6,40 @@ const {
   createBlog, 
   updateBlog, 
   deleteBlog,
-  getSavedBlogs,
+  likeBlog,
   getUserBlogs,
-  likeBlog
+  getDraftBlogs,
+  updateDraftBlog,
+  publishDraft,
+  addComment,
+  deleteComment,
+  saveBlog,
+  getSavedBlogs
 } = require('../controllers/blogController');
-const { protect } = require('../middleware/auth');
+const { protect } = require('../middleware/authMiddleware');
 
-// Import comments router
-const commentRouter = require('./comments');
+// Public routes
+router.get('/', getBlogs);
+router.get('/:id', getBlog);
 
-// Apply specific middleware for the blog routes that might have large content
-router.use(express.json({ limit: '10mb' }));
-router.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Special routes that need to be defined BEFORE the /:id route
-router.get('/saved', protect, getSavedBlogs);
+// Protected routes
+router.post('/', protect, createBlog);
+router.put('/:id', protect, updateBlog);
+router.delete('/:id', protect, deleteBlog);
 router.get('/user/blogs', protect, getUserBlogs);
+router.get('/user/drafts', protect, getDraftBlogs);
+router.put('/drafts/:id', protect, updateDraftBlog);
+router.put('/drafts/:id/publish', protect, publishDraft);
 
-// Regular CRUD routes
-router.route('/')
-  .get(getBlogs)
-  .post(protect, createBlog);
+// Comments
+router.post('/:id/comments', protect, addComment);
+router.delete('/:id/comments/:commentId', protect, deleteComment);
 
-// This route should come AFTER any other specific routes
-router.route('/:id')
-  .get(getBlog)
-  .put(protect, updateBlog)
-  .delete(protect, deleteBlog);
+// Likes
+router.post('/:id/like', protect, likeBlog);
 
-// Like a blog
-router.route('/:id/like')
-  .post(likeBlog);
-
-// Re-route into comment router
-router.use('/:blogId/comments', commentRouter);
+// Saved blogs
+router.post('/:id/save', protect, saveBlog);
+router.get('/user/saved', protect, getSavedBlogs);
 
 module.exports = router;

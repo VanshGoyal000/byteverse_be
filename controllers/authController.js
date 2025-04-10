@@ -386,13 +386,7 @@ exports.getPublicProfile = async (req, res) => {
     // Query by username or _id depending on the format
     const user = isValidObjectId 
       ? await User.findById(identifier)
-      : await User.findOne({ 
-          // Case-insensitive username search, or try to find by name if username not available
-          $or: [
-            { username: new RegExp(`^${identifier}$`, 'i') },
-            { name: new RegExp(`^${identifier}$`, 'i') }
-          ]
-        });
+      : await User.findOne({ username: identifier.toLowerCase() });
 
     if (!user) {
       return res.status(404).json({
@@ -405,13 +399,16 @@ exports.getPublicProfile = async (req, res) => {
     const publicProfile = {
       _id: user._id,
       name: user.name,
-      username: user.username,
+      username: user.username || user._id, // Ensure there's always a username value
       avatar: user.avatar,
       bio: user.bio,
       website: user.website,
+      location: user.location,
       isVerified: user.isVerified,
       socialLinks: user.socialLinks,
       createdAt: user.createdAt,
+      joinDate: user.joinDate,
+      skills: user.skills,
       role: user.role === 'admin' ? 'admin' : 'user', // Only reveal admin status
     };
 

@@ -34,7 +34,8 @@ router.post('/resend-verification', resendVerification);
 /**
  * Public profile route
  */
-router.get('/users/:identifier', getPublicProfile);
+// Modified route to handle username-based lookups
+router.get('/users/profile/:identifier', getPublicProfile);
 
 /**
  * Proxy endpoint for getting OAuth tokens
@@ -47,7 +48,7 @@ router.post('/token', async (req, res) => {
     
     // Credentials - store these in your server's environment variables
     const encodedCredentials = process.env.CHOREO_ENCODED_CREDENTIALS || 
-      'SXBsYkVpNHJDdEVmTlV3RUppTTdQaFcwaGp3YTpqVHR5WjVyZUhUZDhxdENzRjd6WmxfYTY2WmRSTnF4N0Nhc3JmTWdGM3F3YQ==';
+      'SXBsYkVpNHJDdEVmTlV3RUppTTdQaFcWaGp3YTpqVHR5WjVyZUhUZDhxdENzRjd6WmxfYTY2WmRSTnF4N0Nhc3JmTWdGM3F3YQ==';
     
     // Make the token request
     const response = await axios({
