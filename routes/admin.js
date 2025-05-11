@@ -1,5 +1,14 @@
 const express = require('express');
 const router = express.Router();
+const { 
+  login, 
+  getMe
+} = require('../controllers/adminController');
+const { adminProtect } = require('../middleware/authMiddleware');
+
+// Admin auth routes
+router.post('/login', login);
+router.get('/me', adminProtect, getMe);
 
 // Import only the available controllers
 // Use an empty object if the import fails completely
@@ -9,8 +18,6 @@ try {
 } catch (error) {
   console.error('Error loading admin controllers:', error);
 }
-
-const { adminProtect } = require('../middleware/authMiddleware');
 
 // Helper function to ensure route handlers exist
 const ensureHandler = (controllerName) => {
